@@ -17,15 +17,12 @@ XrayMetricsVars _$XrayMetricsVarsFromJson(Map<String, dynamic> json) =>
           XrayMetricsObservation.fromJson(e as Map<String, dynamic>),
         ),
       ),
-      netbird: json['netbird'] is Map<String, dynamic>
-          ? {
-              for (final entry in (json['netbird'] as Map<String, dynamic>).entries)
-                if (entry.value is Map<String, dynamic>)
-                  entry.key: XrayMetricsNetBirdStatus.fromJson(
-                    entry.value as Map<String, dynamic>,
-                  ),
-            }
-          : null,
+      netbird: (json['netbird'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          k,
+          XrayMetricsNetBirdStatus.fromJson(e as Map<String, dynamic>),
+        ),
+      ),
     );
 
 Map<String, dynamic> _$XrayMetricsVarsToJson(
