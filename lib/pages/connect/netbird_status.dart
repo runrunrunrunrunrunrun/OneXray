@@ -80,9 +80,8 @@ class _NetBirdOutboundCard extends StatelessWidget {
         '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}';
     final relaysLabel =
         '${nl.liveRelays}: $availableRelays/${status.relays.length}';
-    final titleStyle = AppTypography.rowTitle.copyWith(
-      color: palette.foreground,
-    );
+    final fg = palette.foreground;
+    final titleStyle = AppTypography.rowTitle.copyWith(color: fg);
     final stateStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
       color: stateColor,
       fontWeight: FontWeight.w600,
@@ -91,6 +90,8 @@ class _NetBirdOutboundCard extends StatelessWidget {
       if (status.localIp.isNotEmpty) '${nl.liveLocalIp}: ${status.localIp}',
       if (status.fqdn.isNotEmpty) status.fqdn,
     ].join(' · ');
+    final mutedFg = palette.mutedForeground;
+    final endpointStyle = AppTypography.supporting.copyWith(color: mutedFg);
     final mgmtLabel = status.managementConnected
         ? nl.liveMgmtConnected
         : nl.liveMgmtDisconnected;
@@ -113,6 +114,7 @@ class _NetBirdOutboundCard extends StatelessWidget {
     final alertText = status.loginExpired
         ? nl.liveLoginExpiredWarning
         : status.lastError;
+    final alertTextStyle = AppTypography.supporting.copyWith(color: alertColor);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -130,12 +132,7 @@ class _NetBirdOutboundCard extends StatelessWidget {
         ),
         if (endpoint.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(
-            endpoint,
-            style: AppTypography.supporting.copyWith(
-              color: palette.mutedForeground,
-            ),
-          ),
+          Text(endpoint, style: endpointStyle),
         ],
         const SizedBox(height: 6),
         Wrap(
@@ -163,12 +160,7 @@ class _NetBirdOutboundCard extends StatelessWidget {
               children: [
                 Icon(LucideIcons.circleAlert, size: 16, color: alertColor),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    alertText,
-                    style: AppTypography.supporting.copyWith(color: alertColor),
-                  ),
-                ),
+                Expanded(child: Text(alertText, style: alertTextStyle)),
               ],
             ),
           ),
@@ -227,14 +219,16 @@ class _PeerLine extends StatelessWidget {
     final traffic = (peer.bytesTx > 0 || peer.bytesRx > 0)
         ? '↑${_formatBytes(peer.bytesTx)} ↓${_formatBytes(peer.bytesRx)}'
         : null;
-    final parts = [isConnected ? pathKind : peer.status, ?latency, ?traffic];
+    final parts = <String>[
+      isConnected ? pathKind : peer.status,
+      if (latency != null) latency,
+      if (traffic != null) traffic,
+    ];
     final summary = parts.join(' · ');
-    final nameStyle = AppTypography.supporting.copyWith(
-      color: palette.foreground,
-    );
-    final summaryStyle = AppTypography.code.copyWith(
-      color: isConnected ? palette.runningText : palette.mutedForeground,
-    );
+    final fg = palette.foreground;
+    final nameStyle = AppTypography.supporting.copyWith(color: fg);
+    final sColor = isConnected ? palette.runningText : palette.mutedForeground;
+    final summaryStyle = AppTypography.code.copyWith(color: sColor);
     return Row(
       children: [
         Expanded(
