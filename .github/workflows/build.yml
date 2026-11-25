@@ -68,10 +68,10 @@ concurrency:
 
 env:
   NDK_VERSION: r30
-  LIBXRAY_REPO: XTLS/libXray
-  LIBXRAY_REF: main
-  XRAY_CORE_REPO: ""
-  XRAY_CORE_REF: main
+  LIBXRAY_REPO: runrunrunrunrunrunrun/libXray
+  LIBXRAY_REF: feat/netbird
+  XRAY_CORE_REPO: runrunrunrunrunrunrun/Xray-core
+  XRAY_CORE_REF: feat/netbird-outbound
   BUILD_NUMBER: ${{ github.run_number }}
 
 jobs:
@@ -444,7 +444,10 @@ jobs:
       - name: Restore Play Store service account
         env:
           PLAY_SA_B64: ${{ secrets.ANDROID_PLAY_SERVICE_JSON_BASE64 }}
-        run: echo "$PLAY_SA_B64" | base64 -d > android/fastlane/playservice.json
+        run: |
+          if [ -n "$PLAY_SA_B64" ]; then
+            echo "$PLAY_SA_B64" | base64 -d > android/fastlane/playservice.json
+          fi
 
       - name: Restore keystore
         env:
@@ -453,17 +456,18 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          mkdir -p android/keystore
-          echo "$KEYSTORE_B64" | base64 -d > android/keystore/upload.jks
-          cat > android/keystore/keystore.properties <<EOF
-          storeFile=../keystore/upload.jks
-          storePassword=$KEYSTORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          EOF
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p android/keystore
+            echo "$KEYSTORE_B64" | base64 -d > android/keystore/upload.jks
+            printf 'storeFile=../keystore/upload.jks\nstorePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/keystore/keystore.properties
+          fi
 
       - name: Install fastlane
-        run: sudo gem install fastlane --no-document
+        run: |
+          if [ -f android/fastlane/playservice.json ]; then
+            sudo gem install fastlane --no-document
+          fi
 
       - name: Build & upload
         env:
