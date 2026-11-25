@@ -25,7 +25,8 @@ class NetBirdEditorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) =>
-        (createController?.call() ?? NetBirdEditorController(serverId: serverId))
+        (createController?.call() ??
+              NetBirdEditorController(serverId: serverId))
           ..initialize(),
     child: BlocBuilder<NetBirdEditorController, NetBirdEditorState>(
       builder: (context, state) {

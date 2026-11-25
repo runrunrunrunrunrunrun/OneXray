@@ -85,7 +85,8 @@ class NetBirdServerDraft {
       lazyConnection: settings['lazyConnection'] as bool? ?? false,
       natExternalIPs: natExternalIPs,
       logLevel: (settings['logLevel'] as String? ?? '').trim(),
-      dnsRouterInterval: (settings['dnsRouterInterval'] as String? ?? '').trim(),
+      dnsRouterInterval:
+          (settings['dnsRouterInterval'] as String? ?? '').trim(),
     );
   }
 

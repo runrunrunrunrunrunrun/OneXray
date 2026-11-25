@@ -490,7 +490,7 @@ class OneVpnService : VpnService() {
         runCatching {
             builder.addDisallowedApplication(packageName)
         }.onFailure { error ->
-            Log.w(TAG, "Failed to exclude app from TUN for NetBird outbound", error)
+            XLog.e("Failed to exclude app from TUN for NetBird outbound", error)
         }
     }
 

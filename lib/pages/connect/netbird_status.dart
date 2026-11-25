@@ -23,7 +23,8 @@ class NetBirdStatusReadout extends StatelessWidget {
     if (view.phase != ConnectionPhase.connected || runtime == null) {
       return const SizedBox.shrink();
     }
-    final statuses = view.traffic?.netbird.values.toList(growable: false) ??
+    final statuses =
+        view.traffic?.netbird.values.toList(growable: false) ??
         const <XrayMetricsNetBirdStatus>[];
     if (statuses.isEmpty) return const SizedBox.shrink();
     final palette = ColorManager.palette(context);
@@ -84,7 +85,9 @@ class _NetBirdOutboundCard extends StatelessWidget {
             Expanded(
               child: Text(
                 status.tag.isNotEmpty ? status.tag : 'netbird',
-                style: AppTypography.rowTitle.copyWith(color: palette.foreground),
+                style: AppTypography.rowTitle.copyWith(
+                  color: palette.foreground,
+                ),
               ),
             ),
             Text(
@@ -100,7 +103,8 @@ class _NetBirdOutboundCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             [
-              if (status.localIp.isNotEmpty) '${nl.liveLocalIp}: ${status.localIp}',
+              if (status.localIp.isNotEmpty)
+                '${nl.liveLocalIp}: ${status.localIp}',
               if (status.fqdn.isNotEmpty) status.fqdn,
             ].join(' · '),
             style: AppTypography.supporting.copyWith(
@@ -130,12 +134,14 @@ class _NetBirdOutboundCard extends StatelessWidget {
                   : palette.restartingText,
             ),
             _StatusChip(
-              label: '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}',
+              label:
+                  '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}',
               color: palette.mutedStrong,
             ),
             if (status.relays.isNotEmpty)
               _StatusChip(
-                label: '${nl.liveRelays}: $availableRelays/${status.relays.length}',
+                label:
+                    '${nl.liveRelays}: $availableRelays/${status.relays.length}',
                 color: palette.mutedStrong,
               ),
           ],

@@ -78,7 +78,9 @@ class NetBirdEditorState {
         : activeSessionId ?? this.activeSessionId,
     authUrl: clearOAuthSession ? null : authUrl ?? this.authUrl,
     userCode: clearOAuthSession ? null : userCode ?? this.userCode,
-    oauthFlowType: clearOAuthSession ? null : oauthFlowType ?? this.oauthFlowType,
+    oauthFlowType: clearOAuthSession
+        ? null
+        : oauthFlowType ?? this.oauthFlowType,
     authorizedPeerIp: authorizedPeerIp ?? this.authorizedPeerIp,
     authorizedFqdn: authorizedFqdn ?? this.authorizedFqdn,
     error: clearError ? null : error ?? this.error,
