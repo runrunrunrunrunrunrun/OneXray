@@ -82,10 +82,8 @@ class _NetBirdOutboundCard extends StatelessWidget {
         '${nl.liveRelays}: $availableRelays/${status.relays.length}';
     final fg = palette.foreground;
     final titleStyle = AppTypography.rowTitle.copyWith(color: fg);
-    final stateStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
-      color: stateColor,
-      fontWeight: FontWeight.w600,
-    );
+    final stateStyle = Theme.of(context).textTheme.labelMedium
+        ?.copyWith(color: stateColor, fontWeight: FontWeight.w600);
     final endpoint = [
       if (status.localIp.isNotEmpty) '${nl.liveLocalIp}: ${status.localIp}',
       if (status.fqdn.isNotEmpty) status.fqdn,
