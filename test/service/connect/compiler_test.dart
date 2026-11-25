@@ -2366,6 +2366,58 @@ void main() {
       expect(XrayJson.fromJson(plan.config).toJson(), plan.config);
     }
   });
+
+  test('NetBird Smart Routing routes 100.64.0.0/10 to proxy before direct', () {
+    final netbirdNode = ResolvedServer(
+      id: 99,
+      sourceId: 1,
+      outbound: {
+        'tag': 'Work NetBird',
+        'protocol': 'netbird',
+        'settings': {
+          'managementUrl': 'https://net.l0op.site',
+          'setupKey': 'test-key',
+        },
+      },
+    );
+    final smartSettings = ConnectionSettings(trafficMode: TrafficMode.smart);
+    final nbPlan = ConnectionCompiler.compile(
+      settings: smartSettings,
+      entries: [netbirdNode],
+      regions: catalog,
+      options: options(
+        platform: ConnectionPlatform.windows,
+        interfaceName: 'Ethernet',
+      ),
+    );
+    final nbRules = (nbPlan.config['routing']['rules'] as List).cast<Map>();
+    final overlayIdx = nbRules.indexWhere(
+      (rule) => rule['ruleTag'] == 'app-netbird-overlay-ip',
+    );
+    final directIpIdx = nbRules.indexWhere(
+      (rule) => rule['ruleTag'] == 'app-smart-direct-ip',
+    );
+    expect(overlayIdx, greaterThanOrEqualTo(0));
+    expect(directIpIdx, greaterThan(overlayIdx));
+    expect(nbRules[overlayIdx]['ip'], ['100.64.0.0/10']);
+    expect(nbRules[overlayIdx]['balancerTag'], 'proxy');
+
+    final ordinaryPlan = ConnectionCompiler.compile(
+      settings: smartSettings,
+      entries: [node(1, address: 'node.test')],
+      regions: catalog,
+      options: options(
+        platform: ConnectionPlatform.windows,
+        interfaceName: 'Ethernet',
+      ),
+    );
+    final ordinaryRules = (ordinaryPlan.config['routing']['rules'] as List)
+        .cast<Map>();
+    expect(
+      ordinaryRules.any((rule) => rule['ruleTag'] == 'app-netbird-overlay-ip'),
+      isFalse,
+    );
+  });
 }
 
 void _fixture(String name, CompiledConnection plan) {

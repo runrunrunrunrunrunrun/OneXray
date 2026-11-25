@@ -37,6 +37,12 @@ class NetBirdL10n {
   String get oauthCancel => zh ? '取消登录' : 'Cancel Sign-in';
   String get oauthWaiting =>
       zh ? '正在等待浏览器完成授权...' : 'Waiting for browser authorization...';
+  String get oauthWaitingPkce => zh
+      ? '已在浏览器中打开登录页，完成授权后将自动回调返回。'
+      : 'Browser opened. Complete sign-in to return automatically.';
+  String get oauthWaitingDevice => zh
+      ? '请在浏览器中输入下方授权码完成设备验证：'
+      : 'Enter the code below in your browser to authorize this device:';
   String get oauthOpenUrl => zh ? '打开授权页面' : 'Open Authorization Page';
   String get oauthUserCode => zh ? '授权码 (User Code)' : 'Authorization Code';
   String get oauthCopyCode => zh ? '复制授权码' : 'Copy Code';

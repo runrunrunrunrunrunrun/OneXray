@@ -298,7 +298,11 @@ class _OAuthPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  nl.oauthWaiting,
+                  state.oauthFlowType == 'pkce'
+                      ? nl.oauthWaitingPkce
+                      : (state.userCode ?? '').isNotEmpty
+                      ? nl.oauthWaitingDevice
+                      : nl.oauthWaiting,
                   style: AppTypography.rowTitle.copyWith(
                     color: palette.foreground,
                   ),

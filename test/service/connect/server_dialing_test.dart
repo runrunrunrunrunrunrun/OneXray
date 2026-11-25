@@ -745,6 +745,34 @@ void main() {
       );
     },
   );
+
+  test('NetBird management host enters bootstrap DNS without TCP HE', () {
+    final outbound = <String, dynamic>{
+      'tag': 'nb',
+      'protocol': 'netbird',
+      'settings': <String, dynamic>{
+        'managementUrl': 'https://Net.Example.:443',
+        'setupKey': 'test-key',
+      },
+      'streamSettings': <String, dynamic>{
+        'sockopt': <String, dynamic>{
+          'happyEyeballs': {'tryDelayMs': 99},
+        },
+      },
+    };
+    expect(
+      ManagedServerDialing.apply(
+        outbounds: [outbound],
+        settings: dualStack,
+        interfaceName: 'Ethernet',
+      ),
+      ['net.example'],
+    );
+    expect(_sockopt(outbound), {
+      'domainStrategy': 'UseIP',
+      'interface': 'Ethernet',
+    });
+  });
 }
 
 Map<String, dynamic> _node(String address, {Map<String, dynamic>? sockopt}) => {

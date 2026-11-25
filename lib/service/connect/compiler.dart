@@ -623,6 +623,13 @@ class ConnectionCompiler {
                 balancerTag: 'proxy',
               ),
             ],
+            if (settings.trafficMode == TrafficMode.smart &&
+                _hasNetBirdOutbound(outbounds))
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-overlay-ip',
+                ip: ['100.64.0.0/10'],
+                balancerTag: 'proxy',
+              ),
             ...rules,
             if (selection.automatic)
               XrayRoutingRule(
@@ -646,6 +653,9 @@ class ConnectionCompiler {
       profile: profile,
     );
   }
+
+  static bool _hasNetBirdOutbound(List<Map<String, dynamic>> outbounds) =>
+      outbounds.any((outbound) => outbound['protocol'] == 'netbird');
 
   static String _encodeRuntime(
     Map<String, dynamic> config, [

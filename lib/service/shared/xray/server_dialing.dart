@@ -91,9 +91,9 @@ abstract final class ManagedServerDialing {
         stream = _object(outbound, 'streamSettings');
       }
       if (stream == null) continue;
-      if (outbound['protocol'] == 'wireguard') {
-        // WireGuard resolves peers locally with its own socket strategy,
-        // even before sending UDP through a dialerProxy. It cannot TCP-race.
+      if (outbound['protocol'] == 'wireguard' ||
+          outbound['protocol'] == 'netbird') {
+        // WireGuard/NetBird resolve peers/servers locally without TCP racing.
         managedStreams[stream] = false;
         collect(addresses);
         route(stream, addresses, supportsHappyEyeballs: false);
@@ -170,6 +170,15 @@ abstract final class ManagedServerDialing {
               if (Uri.tryParse('//$endpoint')?.host case String host)
                 if (host.isNotEmpty) host,
       ];
+    }
+    if (outbound['protocol'] == 'netbird') {
+      final rawMgmt = (settings['managementUrl'] as String? ?? '').trim();
+      final normalized = rawMgmt.isEmpty
+          ? 'https://api.netbird.io'
+          : (rawMgmt.contains('://') ? rawMgmt : 'https://$rawMgmt');
+      final host = Uri.tryParse(normalized)?.host;
+      if (host != null && host.isNotEmpty) return [host];
+      return [];
     }
     final address = settings['address'];
     if (address is String && address.isNotEmpty) return [address];
