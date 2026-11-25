@@ -187,6 +187,9 @@ const _$LibXrayMethodEnumMap = {
   LibXrayMethod.runXray: 'runXray',
   LibXrayMethod.stopXray: 'stopXray',
   LibXrayMethod.xrayVersion: 'xrayVersion',
+  LibXrayMethod.netbirdStartOAuth: 'netbirdStartOAuth',
+  LibXrayMethod.netbirdCompleteOAuth: 'netbirdCompleteOAuth',
+  LibXrayMethod.netbirdCancelOAuth: 'netbirdCancelOAuth',
 };
 
 GetFreePortsRequest _$GetFreePortsRequestFromJson(Map<String, dynamic> json) =>

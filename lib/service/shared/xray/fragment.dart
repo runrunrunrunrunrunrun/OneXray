@@ -37,7 +37,9 @@ abstract final class XrayFragment {
     final enabled = helpers.any(matches);
     return entries.map((source) {
       final outbound = JsonTool.copyMap(source);
-      if (enabled) setOutboundDialerProxy(outbound, tag);
+      if (enabled && outboundString(outbound, 'protocol') != 'netbird') {
+        setOutboundDialerProxy(outbound, tag);
+      }
       return outbound;
     }).toList();
   }

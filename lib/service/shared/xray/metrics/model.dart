@@ -1,4 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:onexray/service/shared/xray/metrics/netbird_model.dart';
+
+export 'netbird_model.dart';
 
 part 'model.g.dart';
 
@@ -6,8 +9,9 @@ part 'model.g.dart';
 class XrayMetricsVars {
   final XrayMetricsStats? stats;
   final Map<String, XrayMetricsObservation>? observatory;
+  final Map<String, XrayMetricsNetBirdStatus>? netbird;
 
-  const XrayMetricsVars(this.stats, {this.observatory});
+  const XrayMetricsVars(this.stats, {this.observatory, this.netbird});
 
   ({int uplink, int downlink}) get managedTraffic {
     final counter = stats?.inbound?.tunIn;

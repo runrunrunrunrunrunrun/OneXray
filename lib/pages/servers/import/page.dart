@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:onexray/l10n/localizations/app_localizations.dart';
 import 'package:onexray/pages/connect/dialogs.dart';
 import 'package:onexray/pages/servers/import/controller.dart';
+import 'package:onexray/pages/servers/netbird/l10n.dart';
 import 'package:onexray/pages/servers/subscription/form_view.dart';
 import 'package:onexray/pages/shared/widgets/page_app_bar.dart';
 import 'package:onexray/pages/shared/widgets/setting_row.dart';
@@ -113,6 +114,12 @@ class _ServersImportPageState extends State<ServersImportPage> {
                         ServerImportAction.json,
                         LucideIcons.fileJson,
                         l10n.prototypeXrayNodeJson,
+                      ),
+                      _choice(
+                        context,
+                        ServerImportAction.netbird,
+                        LucideIcons.shield,
+                        NetBirdL10n.of(context).importChoiceTitle,
                       ),
                       _choice(
                         context,

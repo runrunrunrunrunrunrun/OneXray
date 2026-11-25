@@ -48,6 +48,7 @@ enum AppPageDestination {
   xrayLogs("xray-logs"),
   manualServerOrder("manual-server-order"),
   serverEditor("server-editor"),
+  netbirdEditor("netbird-editor"),
   serverFinalExitPicker("server-final-exit-picker"),
   rawEditor("raw-editor"),
   smartRouting("smart-routing"),

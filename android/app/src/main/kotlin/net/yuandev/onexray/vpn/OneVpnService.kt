@@ -421,6 +421,7 @@ class OneVpnService : VpnService() {
         val builder = Builder()
         val tun = requireNotNull(request.tun) { "missing TUN config" }
         setPerAppVpn(tun, builder)
+        addSelfExclusionIfNetBird(request, tun, builder)
         setIPAndDns(tun, builder)
 
         val establishedTunnel = builder.establish()
@@ -472,6 +473,24 @@ class OneVpnService : VpnService() {
                 PerAppVPNMode.ALLOW -> addAllowedApplication(tun.allowAppList, builder)
                 PerAppVPNMode.DISALLOW -> addDisallowedApplication(tun.disallowAppList, builder)
             }
+        }
+    }
+
+    private fun addSelfExclusionIfNetBird(
+        request: StartVpnRequest,
+        tun: TunJson,
+        builder: Builder,
+    ) {
+        if (request.coreInvokeText?.contains("\"netbird\"") != true) {
+            return
+        }
+        if (tun.perAppVPNMode == PerAppVPNMode.ALLOW) {
+            return
+        }
+        runCatching {
+            builder.addDisallowedApplication(packageName)
+        }.onFailure { error ->
+            Log.w(TAG, "Failed to exclude app from TUN for NetBird outbound", error)
         }
     }
 

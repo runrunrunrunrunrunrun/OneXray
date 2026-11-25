@@ -440,6 +440,11 @@ class ConnectionCompiler {
         } else {
           final exitTag = 'app-exit-$index';
           final exit = _node(finalExit, exitTag);
+          if (outboundString(exit, 'protocol') == 'netbird') {
+            throw const FormatException(
+              'NetBird outbound cannot be used as a chained final exit',
+            );
+          }
           setOutboundDialerProxy(exit, entryTag);
           nodeTags[exitTag] = finalExit.id;
           exits.add(exit);

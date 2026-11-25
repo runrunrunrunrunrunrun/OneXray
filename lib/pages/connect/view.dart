@@ -12,6 +12,7 @@ import 'package:onexray/pages/theme/motion.dart';
 import 'package:onexray/pages/theme/theme.dart';
 import 'package:onexray/pages/shared/widgets/responsive_content.dart';
 import 'package:onexray/pages/shared/widgets/page_empty_state.dart';
+import 'package:onexray/pages/connect/netbird_status.dart';
 import 'package:onexray/pages/connect/runtime_observatory.dart';
 import 'package:onexray/service/connect/coordinator.dart';
 import 'package:onexray/service/connect/failure.dart';
@@ -694,6 +695,7 @@ class TrafficReadout extends StatelessWidget {
           },
         ),
         RuntimeObservatoryReadout(view: view, desktop: desktop),
+        NetBirdStatusReadout(view: view, desktop: desktop),
       ],
     );
   }

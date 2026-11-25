@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:onexray/l10n/localizations/app_localizations.dart';
 import 'package:onexray/pages/servers/controller.dart';
+import 'package:onexray/pages/servers/netbird/l10n.dart';
 import 'package:onexray/pages/servers/resource_json.dart';
 import 'package:onexray/pages/servers/subscription/user_info.dart';
 import 'package:onexray/pages/shared/share/params.dart';
@@ -140,6 +141,22 @@ class ServerResourcePage extends StatelessWidget {
                               : () => controller.test(context, [row]),
                           icon: const Icon(LucideIcons.activity, size: 17),
                           label: Text(l.prototypeTestAgain),
+                        ),
+                      if (!raw &&
+                          !provider &&
+                          controller
+                              .protocol(row)
+                              .toUpperCase()
+                              .contains('NETBIRD'))
+                        OutlinedButton.icon(
+                          onPressed: busy
+                              ? null
+                              : () => context.pushScoped<int>(
+                                  AppPageDestination.netbirdEditor,
+                                  extra: row.id,
+                                ),
+                          icon: const Icon(LucideIcons.keyRound, size: 17),
+                          label: Text(NetBirdL10n.of(context).editButtonLabel),
                         ),
                     ],
                   ),

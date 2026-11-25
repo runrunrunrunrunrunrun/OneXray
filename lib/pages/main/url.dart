@@ -43,6 +43,7 @@ import 'package:onexray/pages/theme/color.dart';
 import 'package:onexray/pages/launch/setup/page.dart';
 import 'package:onexray/pages/launch/setup/selectors.dart';
 import 'package:onexray/pages/servers/import/page.dart';
+import 'package:onexray/pages/servers/netbird/page.dart';
 import 'package:onexray/pages/servers/page.dart';
 import 'package:onexray/pages/servers/details.dart';
 import 'package:onexray/pages/servers/view.dart';
@@ -394,6 +395,10 @@ final _pageRoutes = <_PageRoute>[
     AppPageDestination.serverEditor,
     (_, state) =>
         _withExtra<int>(state, (id) => ServerEditorPage(serverId: id)),
+  ),
+  _route(
+    AppPageDestination.netbirdEditor,
+    (_, state) => NetBirdEditorPage(serverId: state.extra as int?),
   ),
   _route(
     AppPageDestination.serverFinalExitPicker,

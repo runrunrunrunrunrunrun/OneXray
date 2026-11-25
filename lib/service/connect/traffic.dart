@@ -8,12 +8,14 @@ class ConnectionTraffic {
   final int downlink;
   final int sampledAtMs;
   final List<RuntimePathObservation> observations;
+  final Map<String, XrayMetricsNetBirdStatus> netbird;
 
   const ConnectionTraffic({
     required this.uplink,
     required this.downlink,
     required this.sampledAtMs,
     this.observations = const [],
+    this.netbird = const {},
   });
 }
 

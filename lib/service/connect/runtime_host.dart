@@ -330,6 +330,7 @@ class ConnectionRuntimeHost {
             startedAtSeconds: runtime.startedAt.millisecondsSinceEpoch ~/ 1000,
           ),
       ]),
+      netbird: Map.unmodifiable(metrics.netbird ?? const {}),
     );
   }
 

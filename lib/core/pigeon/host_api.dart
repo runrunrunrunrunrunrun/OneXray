@@ -361,6 +361,63 @@ class AppHostApi {
     return "";
   }
 
+  Future<NetBirdStartOAuthResponse> netbirdStartOAuth(
+    NetBirdStartOAuthRequest request,
+  ) async {
+    try {
+      final resp = await _invoke(
+        LibXrayInvokeRequest(
+          method: LibXrayMethod.netbirdStartOAuth,
+          payload: request.toJson(),
+        ),
+      );
+      if (resp.success && resp.data != null) {
+        return NetBirdStartOAuthResponse.fromJson(resp.data!);
+      }
+      throw LibXrayInvokeException(resp.error);
+    } catch (error, stackTrace) {
+      _reportUnexpected('netbirdStartOAuth', error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<NetBirdCompleteOAuthResponse> netbirdCompleteOAuth(
+    NetBirdCompleteOAuthRequest request,
+  ) async {
+    try {
+      final resp = await _invoke(
+        LibXrayInvokeRequest(
+          method: LibXrayMethod.netbirdCompleteOAuth,
+          payload: request.toJson(),
+        ),
+      );
+      if (resp.success && resp.data != null) {
+        return NetBirdCompleteOAuthResponse.fromJson(resp.data!);
+      }
+      throw LibXrayInvokeException(resp.error);
+    } catch (error, stackTrace) {
+      _reportUnexpected('netbirdCompleteOAuth', error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> netbirdCancelOAuth(String sessionId) async {
+    try {
+      final resp = await _invoke(
+        LibXrayInvokeRequest(
+          method: LibXrayMethod.netbirdCancelOAuth,
+          payload: NetBirdCancelOAuthRequest(sessionId: sessionId).toJson(),
+        ),
+      );
+      if (!resp.success) {
+        throw LibXrayInvokeException(resp.error);
+      }
+    } catch (error, stackTrace) {
+      _reportUnexpected('netbirdCancelOAuth', error, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<LibXrayInvokeResponse> _invoke(LibXrayInvokeRequest request) async {
     final requestJson = JsonTool.encoder.convert(request.toJson());
     LibXrayInvokeLimits.validate(requestJson, "request");

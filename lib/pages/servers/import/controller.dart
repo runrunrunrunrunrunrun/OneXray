@@ -24,7 +24,7 @@ import 'package:onexray/service/servers/subscription/validator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:re_editor/re_editor.dart';
 
-enum ServerImportAction { scan, paste, subscription, file, json, raw }
+enum ServerImportAction { scan, paste, subscription, file, json, raw, netbird }
 
 enum SubscriptionFormField { name, url, userAgent }
 
@@ -327,7 +327,10 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
 
   bool canSubmit(ServerImportAction action) {
     if (state.busy || state.generatingAgeKey || state.loadFailed) return false;
-    if (action == ServerImportAction.raw) return false;
+    if (action == ServerImportAction.raw ||
+        action == ServerImportAction.netbird) {
+      return false;
+    }
     if (action == ServerImportAction.subscription) {
       return _subscriptionValidation == null;
     }
@@ -478,6 +481,13 @@ class ServerImportController extends PageCubit<ServerImportPageState> {
       final id = await context.pushScoped<int>(AppPageDestination.rawEditor);
       if (id != null) {
         result = const ServerImportResult(count: 0, rawCount: 1);
+      }
+    } else if (action == ServerImportAction.netbird) {
+      final id = await context.pushScoped<int>(
+        AppPageDestination.netbirdEditor,
+      );
+      if (id != null) {
+        result = const ServerImportResult(count: 1);
       }
     } else if (action == ServerImportAction.file ||
         action == ServerImportAction.scan) {
