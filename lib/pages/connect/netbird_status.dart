@@ -23,10 +23,9 @@ class NetBirdStatusReadout extends StatelessWidget {
     if (view.phase != ConnectionPhase.connected || runtime == null) {
       return const SizedBox.shrink();
     }
-    final statuses =
-        view.traffic?.netbird.values.toList(growable: false) ??
-        const <XrayMetricsNetBirdStatus>[];
-    if (statuses.isEmpty) return const SizedBox.shrink();
+    final map = view.traffic?.netbird;
+    if (map == null || map.isEmpty) return const SizedBox.shrink();
+    final statuses = map.values.toList(growable: false);
     final palette = ColorManager.palette(context);
     final nl = NetBirdL10n.of(context);
     return Container(
@@ -81,6 +80,40 @@ class _NetBirdOutboundCard extends StatelessWidget {
         '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}';
     final relaysLabel =
         '${nl.liveRelays}: $availableRelays/${status.relays.length}';
+    final titleStyle = AppTypography.rowTitle.copyWith(
+      color: palette.foreground,
+    );
+    final stateStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: stateColor,
+      fontWeight: FontWeight.w600,
+    );
+    final endpoint = [
+      if (status.localIp.isNotEmpty) '${nl.liveLocalIp}: ${status.localIp}',
+      if (status.fqdn.isNotEmpty) status.fqdn,
+    ].join(' · ');
+    final mgmtLabel = status.managementConnected
+        ? nl.liveMgmtConnected
+        : nl.liveMgmtDisconnected;
+    final mgmtColor = status.managementConnected
+        ? palette.runningText
+        : palette.restartingText;
+    final signalLabel = status.signalConnected
+        ? nl.liveSignalConnected
+        : nl.liveSignalDisconnected;
+    final signalColor = status.signalConnected
+        ? palette.runningText
+        : palette.restartingText;
+    final hasAlert = status.loginExpired || status.lastError.isNotEmpty;
+    final alertColor = status.loginExpired
+        ? palette.restartingText
+        : palette.destructive;
+    final alertBg = status.loginExpired
+        ? palette.warningSurface
+        : palette.destructiveSurface;
+    final alertText = status.loginExpired
+        ? nl.liveLoginExpiredWarning
+        : status.lastError;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -89,28 +122,16 @@ class _NetBirdOutboundCard extends StatelessWidget {
             Expanded(
               child: Text(
                 status.tag.isNotEmpty ? status.tag : 'netbird',
-                style: AppTypography.rowTitle.copyWith(
-                  color: palette.foreground,
-                ),
+                style: titleStyle,
               ),
             ),
-            Text(
-              stateLabel,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: stateColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(stateLabel, style: stateStyle),
           ],
         ),
-        if (status.localIp.isNotEmpty || status.fqdn.isNotEmpty) ...[
+        if (endpoint.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
-            [
-              if (status.localIp.isNotEmpty)
-                '${nl.liveLocalIp}: ${status.localIp}',
-              if (status.fqdn.isNotEmpty) status.fqdn,
-            ].join(' · '),
+            endpoint,
             style: AppTypography.supporting.copyWith(
               color: palette.mutedForeground,
             ),
@@ -121,63 +142,31 @@ class _NetBirdOutboundCard extends StatelessWidget {
           spacing: 8,
           runSpacing: 4,
           children: [
-            _StatusChip(
-              label: status.managementConnected
-                  ? nl.liveMgmtConnected
-                  : nl.liveMgmtDisconnected,
-              color: status.managementConnected
-                  ? palette.runningText
-                  : palette.restartingText,
-            ),
-            _StatusChip(
-              label: status.signalConnected
-                  ? nl.liveSignalConnected
-                  : nl.liveSignalDisconnected,
-              color: status.signalConnected
-                  ? palette.runningText
-                  : palette.restartingText,
-            ),
+            _StatusChip(label: mgmtLabel, color: mgmtColor),
+            _StatusChip(label: signalLabel, color: signalColor),
             _StatusChip(label: peersLabel, color: palette.mutedStrong),
             if (status.relays.isNotEmpty)
               _StatusChip(label: relaysLabel, color: palette.mutedStrong),
           ],
         ),
-        if (status.loginExpired || status.lastError.isNotEmpty) ...[
+        if (hasAlert) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: status.loginExpired
-                  ? palette.warningSurface
-                  : palette.destructiveSurface,
+              color: alertBg,
               borderRadius: BorderRadius.circular(AppRadii.control),
-              border: Border.all(
-                color: status.loginExpired
-                    ? palette.restartingText
-                    : palette.destructive,
-              ),
+              border: Border.all(color: alertColor),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  LucideIcons.circleAlert,
-                  size: 16,
-                  color: status.loginExpired
-                      ? palette.restartingText
-                      : palette.destructive,
-                ),
+                Icon(LucideIcons.circleAlert, size: 16, color: alertColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    status.loginExpired
-                        ? nl.liveLoginExpiredWarning
-                        : status.lastError,
-                    style: AppTypography.supporting.copyWith(
-                      color: status.loginExpired
-                          ? palette.restartingText
-                          : palette.destructive,
-                    ),
+                    alertText,
+                    style: AppTypography.supporting.copyWith(color: alertColor),
                   ),
                 ),
               ],
@@ -229,6 +218,9 @@ class _PeerLine extends StatelessWidget {
     final name = peer.fqdn.isNotEmpty
         ? peer.fqdn
         : (peer.ip.isNotEmpty ? peer.ip : peer.pubKey);
+    final displayName = peer.ip.isNotEmpty && peer.fqdn.isNotEmpty
+        ? '$name (${peer.ip})'
+        : name;
     final isConnected = peer.status.toLowerCase() == 'connected';
     final pathKind = peer.relayed ? nl.liveRelayed : nl.liveP2p;
     final latency = peer.latencyMs > 0 ? '${peer.latencyMs} ms' : null;
@@ -237,25 +229,24 @@ class _PeerLine extends StatelessWidget {
         : null;
     final parts = [isConnected ? pathKind : peer.status, ?latency, ?traffic];
     final summary = parts.join(' · ');
+    final nameStyle = AppTypography.supporting.copyWith(
+      color: palette.foreground,
+    );
+    final summaryStyle = AppTypography.code.copyWith(
+      color: isConnected ? palette.runningText : palette.mutedForeground,
+    );
     return Row(
       children: [
         Expanded(
           child: Text(
-            peer.ip.isNotEmpty && peer.fqdn.isNotEmpty
-                ? '$name (${peer.ip})'
-                : name,
+            displayName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTypography.supporting.copyWith(color: palette.foreground),
+            style: nameStyle,
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          summary,
-          style: AppTypography.code.copyWith(
-            color: isConnected ? palette.runningText : palette.mutedForeground,
-          ),
-        ),
+        Text(summary, style: summaryStyle),
       ],
     );
   }
