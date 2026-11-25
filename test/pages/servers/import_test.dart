@@ -65,6 +65,7 @@ void main() {
         ServerImportAction.subscription,
         ServerImportAction.file,
         ServerImportAction.json,
+        ServerImportAction.netbird,
         ServerImportAction.raw,
       ]) {
         final choice = find.byKey(
@@ -76,7 +77,7 @@ void main() {
       }
       expect(
         find.byType(SettingRow),
-        findsNWidgets(controller.supportsScan ? 6 : 5),
+        findsNWidgets(controller.supportsScan ? 7 : 6),
       );
       expect(tester.takeException(), isNull);
     },
