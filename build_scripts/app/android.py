@@ -8,11 +8,7 @@ from app.command_line import flutter_command, run_command
 
 class AndroidBuilder(Builder):
     def build_app(self):
-        play_service = Path(self.project_dir) / "fastlane/playservice.json"
-        apk_only = (
-            os.environ.get("ONEXRAY_ANDROID_APK_ONLY") == "1"
-            or not play_service.is_file()
-        )
+        apk_only = os.environ.get("ONEXRAY_ANDROID_APK_ONLY") == "1"
         if apk_only:
             run_command(
                 [

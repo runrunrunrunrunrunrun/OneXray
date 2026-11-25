@@ -473,6 +473,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           LIBXRAY_LOCAL_XRAY_CORE: ${{ env.XRAY_CORE_REPO != '' && '1' || '' }}
+          ONEXRAY_ANDROID_APK_ONLY: ${{ secrets.ANDROID_PLAY_SERVICE_JSON_BASE64 == '' && '1' || '' }}
         run: uv run --project build_scripts python build_scripts/main.py OneXray android
 
       - name: Upload artifact
