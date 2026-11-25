@@ -16,18 +16,16 @@ class NetBirdEditorPage extends StatelessWidget {
   final int? serverId;
   final NetBirdEditorController Function()? createController;
 
-  const NetBirdEditorPage({
-    super.key,
-    this.serverId,
-    this.createController,
-  });
+  const NetBirdEditorPage({super.key, this.serverId, this.createController});
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (_) =>
-        (createController?.call() ??
-              NetBirdEditorController(serverId: serverId))
-          ..initialize(),
+    create: (_) {
+      final controller =
+          createController?.call() ??
+          NetBirdEditorController(serverId: serverId);
+      return controller..initialize();
+    },
     child: BlocBuilder<NetBirdEditorController, NetBirdEditorState>(
       builder: (context, state) {
         final controller = context.read<NetBirdEditorController>();
@@ -184,10 +182,7 @@ class NetBirdEditorPage extends StatelessWidget {
                                 obscureText: true,
                               )
                             else
-                              _OAuthPanel(
-                                controller: controller,
-                                state: state,
-                              ),
+                              _OAuthPanel(controller: controller, state: state),
                           ],
                         ),
                       ),

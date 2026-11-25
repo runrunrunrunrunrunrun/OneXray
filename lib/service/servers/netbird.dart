@@ -71,6 +71,7 @@ class NetBirdServerDraft {
         : const <String>[];
     final mgmt = (settings['managementUrl'] as String? ?? '').trim();
     final name = (outbound['tag'] as String? ?? original?.name ?? '').trim();
+    final dnsRouter = (settings['dnsRouterInterval'] as String? ?? '').trim();
     return NetBirdServerDraft(
       id: original?.id,
       original: original,
@@ -85,8 +86,7 @@ class NetBirdServerDraft {
       lazyConnection: settings['lazyConnection'] as bool? ?? false,
       natExternalIPs: natExternalIPs,
       logLevel: (settings['logLevel'] as String? ?? '').trim(),
-      dnsRouterInterval:
-          (settings['dnsRouterInterval'] as String? ?? '').trim(),
+      dnsRouterInterval: dnsRouter,
     );
   }
 
@@ -111,8 +111,7 @@ class NetBirdServerDraft {
       if (lazyConnection) 'lazyConnection': true,
       if (natExternalIPs.isNotEmpty) 'natExternalIPs': natExternalIPs,
       if (logLevel.isNotEmpty) 'logLevel': logLevel,
-      if (dnsRouterInterval.isNotEmpty)
-        'dnsRouterInterval': dnsRouterInterval,
+      if (dnsRouterInterval.isNotEmpty) 'dnsRouterInterval': dnsRouterInterval,
     };
     return <String, dynamic>{
       'tag': trimmedName.isEmpty ? 'netbird' : trimmedName,

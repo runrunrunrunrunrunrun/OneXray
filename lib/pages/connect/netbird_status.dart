@@ -77,6 +77,10 @@ class _NetBirdOutboundCard extends StatelessWidget {
       _ => (nl.liveStateIdle, palette.mutedStrong),
     };
     final availableRelays = status.relays.where((r) => r.available).length;
+    final peersLabel =
+        '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}';
+    final relaysLabel =
+        '${nl.liveRelays}: $availableRelays/${status.relays.length}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -133,17 +137,9 @@ class _NetBirdOutboundCard extends StatelessWidget {
                   ? palette.runningText
                   : palette.restartingText,
             ),
-            _StatusChip(
-              label:
-                  '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}',
-              color: palette.mutedStrong,
-            ),
+            _StatusChip(label: peersLabel, color: palette.mutedStrong),
             if (status.relays.isNotEmpty)
-              _StatusChip(
-                label:
-                    '${nl.liveRelays}: $availableRelays/${status.relays.length}',
-                color: palette.mutedStrong,
-              ),
+              _StatusChip(label: relaysLabel, color: palette.mutedStrong),
           ],
         ),
         if (status.loginExpired || status.lastError.isNotEmpty) ...[
@@ -216,10 +212,7 @@ class _StatusChip extends StatelessWidget {
         color: palette.secondary,
         borderRadius: BorderRadius.circular(AppRadii.control),
       ),
-      child: Text(
-        label,
-        style: AppTypography.code.copyWith(color: color),
-      ),
+      child: Text(label, style: AppTypography.code.copyWith(color: color)),
     );
   }
 }
@@ -242,6 +235,8 @@ class _PeerLine extends StatelessWidget {
     final traffic = (peer.bytesTx > 0 || peer.bytesRx > 0)
         ? '↑${_formatBytes(peer.bytesTx)} ↓${_formatBytes(peer.bytesRx)}'
         : null;
+    final parts = [isConnected ? pathKind : peer.status, ?latency, ?traffic];
+    final summary = parts.join(' · ');
     return Row(
       children: [
         Expanded(
@@ -251,18 +246,12 @@ class _PeerLine extends StatelessWidget {
                 : name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTypography.supporting.copyWith(
-              color: palette.foreground,
-            ),
+            style: AppTypography.supporting.copyWith(color: palette.foreground),
           ),
         ),
         const SizedBox(width: 8),
         Text(
-          [
-            isConnected ? pathKind : peer.status,
-            ?latency,
-            ?traffic,
-          ].join(' · '),
+          summary,
           style: AppTypography.code.copyWith(
             color: isConnected ? palette.runningText : palette.mutedForeground,
           ),
