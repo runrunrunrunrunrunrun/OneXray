@@ -217,11 +217,7 @@ class _PeerLine extends StatelessWidget {
     final traffic = (peer.bytesTx > 0 || peer.bytesRx > 0)
         ? '↑${_formatBytes(peer.bytesTx)} ↓${_formatBytes(peer.bytesRx)}'
         : null;
-    final parts = <String>[
-      isConnected ? pathKind : peer.status,
-      if (latency != null) latency,
-      if (traffic != null) traffic,
-    ];
+    final parts = [isConnected ? pathKind : peer.status, ?latency, ?traffic];
     final summary = parts.join(' · ');
     final fg = palette.foreground;
     final nameStyle = AppTypography.supporting.copyWith(color: fg);

@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:onexray/core/model/tun_json.dart';
-import 'package:onexray/core/pigeon/netbird_model.dart';
 import 'package:onexray/core/tools/json.dart';
 
 export 'netbird_model.dart';
