@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:onexray/pages/shared/widgets/app_activity.dart';
 import 'package:onexray/l10n/localizations/app_localizations.dart';
 import 'package:onexray/pages/connect/controller.dart';
+import 'package:onexray/pages/connect/netbird_status.dart';
 import 'package:onexray/pages/connect/view.dart';
 import 'package:onexray/pages/main/page_visibility.dart';
 import 'package:onexray/pages/servers/netbird/l10n.dart';
@@ -86,6 +87,16 @@ class _ConnectPageState extends State<ConnectPage> {
                       selector: (state) => state.connectionView,
                       builder: (context, view) =>
                           TrafficReadout(view: view, desktop: desktop),
+                    ),
+                netbirdBuilder: (_) =>
+                    BlocSelector<
+                      ConnectController,
+                      ConnectPageState,
+                      ConnectionView
+                    >(
+                      selector: (state) => state.connectionView,
+                      builder: (context, view) =>
+                          NetBirdNetworkCard(view: view),
                     ),
                 hasServers: state.servers.isNotEmpty,
                 expert: state.configuration.connection.expert,

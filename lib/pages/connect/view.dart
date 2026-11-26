@@ -24,6 +24,7 @@ class ConnectView extends StatelessWidget {
     super.key,
     required this.view,
     this.trafficBuilder,
+    this.netbirdBuilder,
     required this.hasServers,
     required this.expert,
     required this.raws,
@@ -54,6 +55,7 @@ class ConnectView extends StatelessWidget {
   });
   final ConnectionView view;
   final Widget Function(bool desktop)? trafficBuilder;
+  final WidgetBuilder? netbirdBuilder;
   final bool hasServers;
   final bool expert;
   final List<CoreConfigData> raws;
@@ -325,6 +327,7 @@ class ConnectView extends StatelessWidget {
                 ),
               ),
             ),
+            netbirdBuilder?.call(context) ?? NetBirdNetworkCard(view: view),
           ],
         ),
       ),
@@ -717,7 +720,6 @@ class TrafficReadout extends StatelessWidget {
           },
         ),
         RuntimeObservatoryReadout(view: view, desktop: desktop),
-        NetBirdStatusReadout(view: view, desktop: desktop),
       ],
     );
   }

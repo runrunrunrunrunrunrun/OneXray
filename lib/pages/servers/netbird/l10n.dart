@@ -114,6 +114,27 @@ class NetBirdL10n {
 
   // Live connection readout
   String get liveStatusTitle => 'NetBird';
+  String get liveNetworkTitle => zh ? 'NetBird 网络' : 'NetBird Network';
+  String get livePeersHeader => zh ? '节点列表 (Peers)' : 'Peers';
+  String get liveNoPeers => zh ? '暂无已发现的 Peer' : 'No peers discovered yet';
+  String get livePeerConnected => zh ? '已连接' : 'Connected';
+  String get livePeerConnecting => zh ? '连接中' : 'Connecting';
+  String get livePeerDisconnected => zh ? '未连接' : 'Disconnected';
+  String get livePeerIdle => zh ? '空闲' : 'Idle';
+  String get livePeerDetailsTitle => zh ? 'Peer 详情' : 'Peer Details';
+  String get livePeerStatus => zh ? '连接状态' : 'Status';
+  String get livePeerConnectionType => zh ? '连接方式' : 'Connection';
+  String get livePeerDirect => zh ? 'P2P 直连' : 'P2P Direct';
+  String get livePeerRelayServer => zh ? '中继服务器' : 'Relay Server';
+  String get livePeerLatency => zh ? '延迟' : 'Latency';
+  String get livePeerTraffic => zh ? '流量统计' : 'Traffic';
+  String get livePeerFqdn => zh ? '域名 (FQDN)' : 'FQDN';
+  String get livePeerIpv4 => 'IPv4';
+  String get livePeerIpv6 => 'IPv6';
+  String get livePeerPubKey => zh ? '公钥 (Public Key)' : 'Public Key';
+  String get livePeerRoutes => zh ? '通告路由' : 'Routes';
+  String get liveCopy => zh ? '复制' : 'Copy';
+  String get liveClose => zh ? '关闭' : 'Close';
   String get liveStateIdle => zh ? '空闲' : 'Idle';
   String get liveStateStarting => zh ? '连接中' : 'Starting';
   String get liveStateStarted => zh ? '已连接' : 'Connected';
