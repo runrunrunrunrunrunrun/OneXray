@@ -96,6 +96,8 @@ class NetBirdL10n {
       ? '当前主节点已是 NetBird，将直接自动路由 NetBird 流量'
       : 'Already connected as primary NetBird node';
   String get liveRoutes => zh ? '路由' : 'Routes';
+  String get liveDns => 'DNS';
+  String get liveDefaultDns => zh ? '主 DNS' : 'Primary DNS';
   String get liveExitNodeActive => zh ? 'Exit Node 已激活' : 'Exit Node Active';
   String get liveExitNodeStandby => zh ? 'Exit Node 待命' : 'Exit Node Available';
 

@@ -81,6 +81,22 @@ class _NetBirdOutboundCard extends StatelessWidget {
     final relaysLabel =
         '${nl.liveRelays}: $availableRelays/${status.relays.length}';
     final routesLabel = '${nl.liveRoutes}: ${status.routes.length}';
+    final dnsPreviewList = <String>{
+      ...status.dnsDomains,
+      ...status.searchDomains,
+    }.toList(growable: false);
+    final dnsLabel = switch ((
+      status.dnsDomains.length,
+      status.hasDefaultDns,
+      status.searchDomains.length,
+    )) {
+      (> 0, true, _) =>
+        '${nl.liveDns}: ${status.dnsDomains.length} (${nl.liveDefaultDns})',
+      (> 0, false, _) => '${nl.liveDns}: ${status.dnsDomains.length}',
+      (0, true, _) => '${nl.liveDns}: ${nl.liveDefaultDns}',
+      (0, false, > 0) => '${nl.liveDns}: ${status.searchDomains.length}',
+      _ => null,
+    };
     final fg = palette.foreground;
     final titleStyle = AppTypography.rowTitle.copyWith(color: fg);
     final stateStyle = Theme.of(context).textTheme.labelMedium
@@ -147,6 +163,13 @@ class _NetBirdOutboundCard extends StatelessWidget {
               _StatusChip(label: relaysLabel, color: palette.mutedStrong),
             if (status.routes.isNotEmpty)
               _StatusChip(label: routesLabel, color: palette.mutedStrong),
+            if (dnsLabel != null)
+              _StatusChip(
+                label: dnsLabel,
+                color: status.hasDefaultDns
+                    ? palette.runningText
+                    : palette.mutedStrong,
+              ),
             if (status.exitNodeActive || status.exitNodeAvailable)
               _StatusChip(
                 label: status.exitNodeActive
@@ -162,6 +185,15 @@ class _NetBirdOutboundCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             status.routes.take(6).join(', '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.code.copyWith(color: mutedFg),
+          ),
+        ],
+        if (dnsPreviewList.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            '${nl.liveDns}: ${dnsPreviewList.take(6).join(', ')}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppTypography.code.copyWith(color: mutedFg),

@@ -104,12 +104,14 @@ class XrayMetricsNetBirdStatus {
   final bool enableExitNode;
   final bool exitNodeAvailable;
   final bool exitNodeActive;
+  final bool hasDefaultDns;
   final int peersTotal;
   final int peersConnected;
   final List<XrayMetricsNetBirdRelay> relays;
   final List<XrayMetricsNetBirdPeer> peers;
   final List<String> routes;
   final List<String> dnsDomains;
+  final List<String> searchDomains;
   final bool loginExpired;
   final String lastError;
 
@@ -128,12 +130,14 @@ class XrayMetricsNetBirdStatus {
     this.enableExitNode = false,
     this.exitNodeAvailable = false,
     this.exitNodeActive = false,
+    this.hasDefaultDns = false,
     this.peersTotal = 0,
     this.peersConnected = 0,
     this.relays = const [],
     this.peers = const [],
     this.routes = const [],
     this.dnsDomains = const [],
+    this.searchDomains = const [],
     this.loginExpired = false,
     this.lastError = '',
   });
@@ -143,6 +147,7 @@ class XrayMetricsNetBirdStatus {
     final rawPeers = json['peers'];
     final rawRoutes = json['routes'];
     final rawDnsDomains = json['dnsDomains'];
+    final rawSearchDomains = json['searchDomains'];
     return XrayMetricsNetBirdStatus(
       tag: json['tag'] as String? ?? '',
       state: json['state'] as String? ?? '',
@@ -158,6 +163,7 @@ class XrayMetricsNetBirdStatus {
       enableExitNode: json['enableExitNode'] as bool? ?? false,
       exitNodeAvailable: json['exitNodeAvailable'] as bool? ?? false,
       exitNodeActive: json['exitNodeActive'] as bool? ?? false,
+      hasDefaultDns: json['hasDefaultDns'] as bool? ?? false,
       peersTotal: (json['peersTotal'] as num?)?.toInt() ?? 0,
       peersConnected: (json['peersConnected'] as num?)?.toInt() ?? 0,
       relays: rawRelays is List
@@ -180,6 +186,9 @@ class XrayMetricsNetBirdStatus {
       dnsDomains: rawDnsDomains is List
           ? rawDnsDomains.whereType<String>().toList(growable: false)
           : const [],
+      searchDomains: rawSearchDomains is List
+          ? rawSearchDomains.whereType<String>().toList(growable: false)
+          : const [],
       loginExpired: json['loginExpired'] as bool? ?? false,
       lastError: json['lastError'] as String? ?? '',
     );
@@ -200,12 +209,14 @@ class XrayMetricsNetBirdStatus {
     if (enableExitNode) 'enableExitNode': true,
     if (exitNodeAvailable) 'exitNodeAvailable': true,
     if (exitNodeActive) 'exitNodeActive': true,
+    if (hasDefaultDns) 'hasDefaultDns': true,
     'peersTotal': peersTotal,
     'peersConnected': peersConnected,
     if (relays.isNotEmpty) 'relays': [for (final r in relays) r.toJson()],
     if (peers.isNotEmpty) 'peers': [for (final p in peers) p.toJson()],
     if (routes.isNotEmpty) 'routes': routes,
     if (dnsDomains.isNotEmpty) 'dnsDomains': dnsDomains,
+    if (searchDomains.isNotEmpty) 'searchDomains': searchDomains,
     'loginExpired': loginExpired,
     if (lastError.isNotEmpty) 'lastError': lastError,
   };
