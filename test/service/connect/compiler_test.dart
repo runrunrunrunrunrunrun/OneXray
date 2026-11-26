@@ -2530,8 +2530,9 @@ void main() {
         'netbirdTag': 'app-netbird',
       });
       expect(exitIdx, greaterThan(routesIdx));
-      expect(catchAllIdx, equals(exitIdx + 1));
-      expect(pRules[catchAllIdx]['balancerTag'], 'proxy');
+      expect(exitIdx, equals(pRules.length - 1));
+      expect(catchAllIdx, -1);
+      expect(outbounds.first['tag'], 'app-entry-0');
       expect(XrayJson.fromJson(parallel.config).toJson(), parallel.config);
     }
 
