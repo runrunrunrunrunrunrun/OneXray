@@ -140,9 +140,7 @@ class _NetBirdOutboundSection extends StatelessWidget {
       if (status.fqdn.isNotEmpty) status.fqdn,
     ];
     final endpoint = endpointParts.join(' · ');
-    final copyTarget = status.localIp.isNotEmpty
-        ? status.localIp
-        : status.fqdn;
+    final copyTarget = status.localIp.isNotEmpty ? status.localIp : status.fqdn;
     final mgmtLabel = status.managementConnected
         ? nl.liveMgmtConnected
         : nl.liveMgmtDisconnected;
@@ -421,11 +419,8 @@ class _NetBirdPeerListState extends State<_NetBirdPeerList> {
                     shrinkWrap: true,
                     primary: false,
                     itemCount: sorted.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: palette.border,
-                    ),
+                    separatorBuilder: (context, index) =>
+                        Divider(height: 1, thickness: 1, color: palette.border),
                     itemBuilder: (context, index) => _PeerRow(
                       peer: sorted[index],
                       onTap: () =>
