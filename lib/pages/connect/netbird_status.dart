@@ -110,7 +110,9 @@ class _NetBirdOutboundCard extends StatelessWidget {
         ? palette.warningSurface
         : palette.destructiveSurface;
     final alertText = status.loginExpired
-        ? nl.liveLoginExpiredWarning
+        ? (status.lastError.isNotEmpty
+              ? '${nl.liveLoginExpiredWarning}\n${status.lastError}'
+              : nl.liveLoginExpiredWarning)
         : status.lastError;
     final alertTextStyle = AppTypography.supporting.copyWith(color: alertColor);
 
@@ -158,7 +160,9 @@ class _NetBirdOutboundCard extends StatelessWidget {
               children: [
                 Icon(LucideIcons.circleAlert, size: 16, color: alertColor),
                 const SizedBox(width: 8),
-                Expanded(child: Text(alertText, style: alertTextStyle)),
+                Expanded(
+                  child: SelectableText(alertText, style: alertTextStyle),
+                ),
               ],
             ),
           ),

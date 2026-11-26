@@ -422,10 +422,19 @@ class AppHostApi {
     final requestJson = JsonTool.encoder.convert(request.toJson());
     LibXrayInvokeLimits.validate(requestJson, "request");
     late final String responseJson;
+    final concurrentDesktop = const {
+      LibXrayMethod.netbirdStartOAuth,
+      LibXrayMethod.netbirdCompleteOAuth,
+      LibXrayMethod.netbirdCancelOAuth,
+    }.contains(request.method);
     if (AppPlatform.isLinux) {
-      responseJson = await LinuxFfiApi().invoke(requestJson);
+      responseJson = concurrentDesktop
+          ? await LinuxFfiApi().invokeConcurrent(requestJson)
+          : await LinuxFfiApi().invoke(requestJson);
     } else if (AppPlatform.isWindows) {
-      responseJson = await WindowsFfiApi().invoke(requestJson);
+      responseJson = concurrentDesktop
+          ? await WindowsFfiApi().invokeConcurrent(requestJson)
+          : await WindowsFfiApi().invoke(requestJson);
     } else {
       responseJson = await _api.invoke(requestJson);
     }

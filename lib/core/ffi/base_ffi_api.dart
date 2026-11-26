@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart' show protected;
@@ -164,6 +165,9 @@ abstract class BaseFfiApi {
   Future<String> invoke(String requestJson) async {
     return _sharedIsolate.compute(_cgoInvoke, requestJson);
   }
+
+  Future<String> invokeConcurrent(String requestJson) =>
+      Isolate.run(() => _cgoInvoke(requestJson));
 }
 
 class _CoreLib {

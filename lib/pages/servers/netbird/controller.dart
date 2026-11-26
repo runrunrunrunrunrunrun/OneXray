@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -163,10 +164,28 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
     }
   }
 
-  Future<void> openAuthUrl(BuildContext context, String rawUrl) async {
+  Future<bool> _launchExternalBrowser(String rawUrl) async {
     final uri = Uri.tryParse(rawUrl);
-    if (uri == null) return;
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (uri == null) return false;
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        return true;
+      }
+    } catch (_) {}
+    if (Platform.isWindows) {
+      try {
+        await Process.start('rundll32', [
+          'url.dll,FileProtocolHandler',
+          rawUrl,
+        ], mode: ProcessStartMode.detached);
+        return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  Future<void> openAuthUrl(BuildContext context, String rawUrl) async {
+    final launched = await _launchExternalBrowser(rawUrl);
     if (!launched && context.mounted) {
       ContextAlert.showToast(
         context,
@@ -198,7 +217,7 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
           existingPrivateKey: privateKeyController.text.trim().isEmpty
               ? null
               : privateKeyController.text.trim(),
-          timeoutSeconds: 300,
+          timeoutSeconds: 20,
         ),
       );
       if (!isPageActive) {
@@ -219,15 +238,9 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
         ),
       );
       if (startResp.authUrl.isNotEmpty) {
-        final uri = Uri.tryParse(startResp.authUrl);
-        if (uri != null) {
-          final launched = await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
-          if (!launched && context.mounted) {
-            ContextAlert.showToast(context, nl.oauthBrowserFailed);
-          }
+        final launched = await _launchExternalBrowser(startResp.authUrl);
+        if (!launched && context.mounted) {
+          ContextAlert.showToast(context, nl.oauthBrowserFailed);
         }
       }
       final completeResp = await _hostApi.netbirdCompleteOAuth(
