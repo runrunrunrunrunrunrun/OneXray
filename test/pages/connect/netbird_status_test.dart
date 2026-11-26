@@ -6,7 +6,6 @@ import 'package:onexray/pages/connect/view.dart';
 import 'package:onexray/pages/theme/theme.dart';
 import 'package:onexray/service/connect/compiler.dart';
 import 'package:onexray/service/connect/coordinator.dart';
-import 'package:onexray/service/connect/resolver.dart';
 import 'package:onexray/service/connect/runtime.dart';
 import 'package:onexray/service/connect/settings.dart';
 import 'package:onexray/service/connect/traffic.dart';
