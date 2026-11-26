@@ -70,7 +70,7 @@ void main() {
   testWidgets(
     'netbird standalone card shows all scrollable peers and peer detail dialog',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1000, 900));
+      await tester.binding.setSurfaceSize(const Size(1000, 1400));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final peers = List<XrayMetricsNetBirdPeer>.generate(
@@ -140,6 +140,7 @@ void main() {
 
       final peerListFinder = find.byKey(const ValueKey('netbird-peer-list'));
       expect(peerListFinder, findsOneWidget);
+      await tester.ensureVisible(peerListFinder);
       expect(find.text('node-00.netbird.selfhosted'), findsOneWidget);
 
       await tester.scrollUntilVisible(
@@ -160,6 +161,7 @@ void main() {
           matching: find.byType(Scrollable),
         ),
       );
+      await tester.ensureVisible(find.text('node-00.netbird.selfhosted'));
       await tester.tap(find.text('node-00.netbird.selfhosted'));
       await tester.pumpAndSettle();
 
@@ -192,9 +194,9 @@ ConnectionRuntime _runtime() {
       finalExit: null,
       nodeTags: const {},
     ),
-    platform: ConnectionPlatform.windows,
+    platform: ConnectionPlatform.android,
     request: StartVpnRequest(
-      configuration.policy.toTun(ConnectionPlatform.windows),
+      configuration.policy.toTun(ConnectionPlatform.android),
       null,
       null,
       '{}',
