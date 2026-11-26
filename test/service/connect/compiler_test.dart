@@ -6,6 +6,7 @@ import 'package:onexray/core/ffi/windows/mode.dart';
 import 'package:onexray/core/model/xray_json.dart';
 import 'package:onexray/core/pigeon/constants.dart';
 import 'package:onexray/service/connect/compiler.dart';
+import 'package:onexray/service/connect/dialing.dart';
 import 'package:onexray/service/connect/settings.dart';
 import 'package:onexray/service/connect/routing/region_catalog.dart';
 import 'package:onexray/service/connect/routing/custom/state.dart';
@@ -42,6 +43,7 @@ RuntimeOptions options({
   bool lanProxyEnabled = false,
   int lanProxyPort = defaultLanProxyPort,
   bool apnsProxyPreset = false,
+  ServerDialingSettings dialing = const ServerDialingSettings(),
 }) => RuntimeOptions(
   platform: platform,
   windowsMode: windowsMode,
@@ -55,6 +57,7 @@ RuntimeOptions options({
   lanProxyEnabled: lanProxyEnabled,
   lanProxyPort: lanProxyPort,
   apnsProxyPreset: apnsProxyPreset,
+  dialing: dialing,
 );
 
 ResolvedServer node(int id, {String? address}) => ResolvedServer(
@@ -2406,6 +2409,9 @@ void main() {
         options: options(
           platform: ConnectionPlatform.windows,
           interfaceName: 'Ethernet',
+          dialing: const ServerDialingSettings(
+            domainStrategy: ServerDomainStrategy.useIp,
+          ),
         ),
       );
       expect(standalone.config['routing']['domainStrategy'], 'IPIfNonMatch');
@@ -2482,6 +2488,9 @@ void main() {
         options: options(
           platform: ConnectionPlatform.windows,
           interfaceName: 'Ethernet',
+          dialing: const ServerDialingSettings(
+            domainStrategy: ServerDomainStrategy.useIp,
+          ),
         ),
       );
       expect(parallel.nodeTags['app-netbird'], netbirdNode.id);
