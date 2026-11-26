@@ -152,9 +152,8 @@ class NetBirdOverlayPicker extends StatelessWidget {
                     title: nl.parallelOff,
                     active: selectedId == null,
                     icon: LucideIcons.circleX,
-                    onTap: () => choose(
-                      const NetBirdOverlayChoice(clear: true),
-                    ),
+                    onTap: () =>
+                        choose(const NetBirdOverlayChoice(clear: true)),
                   ),
                   if (nodes.isEmpty)
                     Padding(

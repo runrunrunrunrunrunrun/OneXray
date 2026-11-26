@@ -331,8 +331,9 @@ class ConnectionPreparation {
         : policy;
     final tun = effectivePolicy.toTun(platform);
     entries = [for (final entry in entries) serverDrafts[entry.id] ?? entry];
-    final overlayId =
-        profile == null && !settings.expert ? settings.netbirdOverlayId : null;
+    final overlayId = profile == null && !settings.expert
+        ? settings.netbirdOverlayId
+        : null;
     ResolvedServer? netbirdOverlay;
     if (overlayId != null &&
         !entries.any((entry) => entry.id == overlayId) &&

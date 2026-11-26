@@ -690,11 +690,9 @@ class ConnectController extends PageCubit<ConnectPageState> with ServerLabels {
     );
     if (choice == null || !context.mounted) return;
     if (choice.clear) {
-      await change(
-        context,
-        {'netbirdOverlayId': null},
-        label: '${nl.parallelTitle}: ${nl.parallelOff}',
-      );
+      await change(context, {
+        'netbirdOverlayId': null,
+      }, label: '${nl.parallelTitle}: ${nl.parallelOff}');
       return;
     }
     final id = choice.id;

@@ -2409,8 +2409,8 @@ void main() {
         ),
       );
       expect(standalone.config['routing']['domainStrategy'], 'IPIfNonMatch');
-      final nbRules =
-          (standalone.config['routing']['rules'] as List).cast<Map>();
+      final nbRules = (standalone.config['routing']['rules'] as List)
+          .cast<Map>();
       final routesIdx = nbRules.indexWhere(
         (rule) => rule['ruleTag'] == 'app-netbird-routes',
       );
@@ -2461,10 +2461,7 @@ void main() {
         expect(directIpIdx, greaterThan(routesIdx));
         expect(exitIdx, greaterThan(directIpIdx));
       }
-      expect(
-        XrayJson.fromJson(standalone.config).toJson(),
-        standalone.config,
-      );
+      expect(XrayJson.fromJson(standalone.config).toJson(), standalone.config);
     }
 
     // 2) Parallel attached NetBird alongside a normal proxy node:
@@ -2496,8 +2493,8 @@ void main() {
         ),
         isTrue,
       );
-      final dnsServers =
-          (parallel.config['dns']['servers'] as List).cast<Map>();
+      final dnsServers = (parallel.config['dns']['servers'] as List)
+          .cast<Map>();
       expect(
         dnsServers.any(
           (s) =>

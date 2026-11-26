@@ -81,8 +81,7 @@ class NetBirdL10n {
       ? '允许管理端下发的 0.0.0.0/0 出口路由接管非 NetBird 流量'
       : 'Allow NetBird exit node (0.0.0.0/0) to carry non-NetBird traffic';
 
-  String get parallelTitle =>
-      zh ? 'NetBird 并行路由' : 'NetBird Mesh Overlay';
+  String get parallelTitle => zh ? 'NetBird 并行路由' : 'NetBird Mesh Overlay';
   String get parallelOff => zh ? '未启用' : 'Off';
   String get parallelSubtitle => zh
       ? '在连接主代理时同时挂载一个 NetBird 节点，自动分流内网 IP、DNS 与 NetBird Routes'
@@ -97,10 +96,8 @@ class NetBirdL10n {
       ? '当前主节点已是 NetBird，将直接自动路由 NetBird 流量'
       : 'Already connected as primary NetBird node';
   String get liveRoutes => zh ? '路由' : 'Routes';
-  String get liveExitNodeActive =>
-      zh ? 'Exit Node 已激活' : 'Exit Node Active';
-  String get liveExitNodeStandby =>
-      zh ? 'Exit Node 待命' : 'Exit Node Available';
+  String get liveExitNodeActive => zh ? 'Exit Node 已激活' : 'Exit Node Active';
+  String get liveExitNodeStandby => zh ? 'Exit Node 待命' : 'Exit Node Available';
 
   String get saveButton => zh ? '保存节点' : 'Save Node';
   String get nameRequiredError => zh ? '请输入节点名称' : 'Node name is required';
