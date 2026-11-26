@@ -5,7 +5,7 @@ import 'package:onexray/pages/servers/netbird/l10n.dart';
 import 'package:onexray/pages/shared/widgets/page_help.dart';
 import 'package:onexray/pages/theme/color.dart';
 import 'package:onexray/pages/theme/font.dart';
-import 'package:onexray/pages/theme/theme.dart';
+import 'package:onexray/pages/theme/layout.dart';
 import 'package:onexray/service/servers/catalog.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
