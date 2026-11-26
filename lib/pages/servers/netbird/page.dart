@@ -238,6 +238,16 @@ class NetBirdEditorPage extends StatelessWidget {
                                 onChanged: controller.setLazyConnection,
                               ),
                             ),
+                            Divider(height: 1, color: palette.border),
+                            SettingRow(
+                              title: nl.enableExitNodeTitle,
+                              subtitle: nl.enableExitNodeSubtitle,
+                              trailing: AppSwitch(
+                                value: state.enableExitNode,
+                                enabled: !state.busy,
+                                onChanged: controller.setEnableExitNode,
+                              ),
+                            ),
                           ],
                         ],
                       ),

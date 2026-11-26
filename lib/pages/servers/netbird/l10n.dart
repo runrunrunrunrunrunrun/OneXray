@@ -75,6 +75,32 @@ class NetBirdL10n {
   String get lazyConnectionSubtitle => zh
       ? '仅在访问对应节点流量时建立 WireGuard 隧道'
       : 'Establish peer tunnels only when traffic targets them';
+  String get enableExitNodeTitle =>
+      zh ? '启用 Exit Node (默认出口路由)' : 'Enable Exit Node';
+  String get enableExitNodeSubtitle => zh
+      ? '允许管理端下发的 0.0.0.0/0 出口路由接管非 NetBird 流量'
+      : 'Allow NetBird exit node (0.0.0.0/0) to carry non-NetBird traffic';
+
+  String get parallelTitle =>
+      zh ? 'NetBird 并行路由' : 'NetBird Mesh Overlay';
+  String get parallelOff => zh ? '未启用' : 'Off';
+  String get parallelSubtitle => zh
+      ? '在连接主代理时同时挂载一个 NetBird 节点，自动分流内网 IP、DNS 与 NetBird Routes'
+      : 'Run a NetBird node alongside the primary proxy for mesh IP, DNS, and Routes';
+  String get parallelHelp => zh
+      ? '关闭时仅使用主代理节点；选择某个 NetBird 节点后，NetBird 网段和内置 DNS 会自动走该节点，其余流量仍按当前路由规则走主代理或直连。'
+      : 'Attach a NetBird node so mesh CIDRs, routes, and DNS route to NetBird automatically while other traffic follows the primary proxy.';
+  String get parallelEmpty => zh
+      ? '暂无 NetBird 节点，请先在服务器页添加一个 NetBird 节点。'
+      : 'No NetBird nodes found. Add a NetBird node on the Servers page first.';
+  String get parallelIncludedInPrimary => zh
+      ? '当前主节点已是 NetBird，将直接自动路由 NetBird 流量'
+      : 'Already connected as primary NetBird node';
+  String get liveRoutes => zh ? '路由' : 'Routes';
+  String get liveExitNodeActive =>
+      zh ? 'Exit Node 已激活' : 'Exit Node Active';
+  String get liveExitNodeStandby =>
+      zh ? 'Exit Node 待命' : 'Exit Node Available';
 
   String get saveButton => zh ? '保存节点' : 'Save Node';
   String get nameRequiredError => zh ? '请输入节点名称' : 'Node name is required';

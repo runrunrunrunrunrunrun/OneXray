@@ -193,6 +193,7 @@ class CompiledConnection {
   final String xrayJson;
   final List<ResolvedServer> entries;
   final ResolvedServer? finalExit;
+  final ResolvedServer? netbirdOverlay;
   final Map<String, int> nodeTags;
   final ResolvedProfile? profile;
 
@@ -200,6 +201,7 @@ class CompiledConnection {
     required this.xrayJson,
     required Iterable<ResolvedServer> entries,
     required this.finalExit,
+    this.netbirdOverlay,
     required Map<String, int> nodeTags,
     this.profile,
   }) : entries = List.unmodifiable(entries),
@@ -323,6 +325,7 @@ class ConnectionCompiler {
     required ConnectionSettings settings,
     required List<ResolvedServer> entries,
     ResolvedServer? finalExit,
+    ResolvedServer? netbirdOverlay,
     Map<String, dynamic>? raw,
     ResolvedProfile? profile,
     RoutingConfiguration? custom,
@@ -339,6 +342,7 @@ class ConnectionCompiler {
               settings.selection.id != profile.sourceId) ||
           entries.isNotEmpty ||
           finalExit != null ||
+          netbirdOverlay != null ||
           raw != null ||
           custom != null) {
         throw const FormatException(
@@ -457,6 +461,23 @@ class ConnectionCompiler {
         TrafficMode.custom => ordinary!.fragmentOutbound,
         TrafficMode.allVpn => null,
       };
+      final allEntriesNetBird =
+          finalExit == null &&
+          entriesOutbounds.isNotEmpty &&
+          entriesOutbounds.every(
+            (outbound) => outbound['protocol'] == 'netbird',
+          );
+      final attachOverlay =
+          netbirdOverlay != null &&
+          !entries.any((entry) => entry.id == netbirdOverlay.id) &&
+          finalExit?.id != netbirdOverlay.id;
+      if (attachOverlay &&
+          outboundString(netbirdOverlay.outbound, 'protocol') != 'netbird') {
+        throw const FormatException(
+          'Attached NetBird node must use the netbird protocol',
+        );
+      }
+      const overlayTag = 'app-netbird';
       final helpers = <Map<String, dynamic>>[?fragment];
       final connectedEntries = XrayFragment.connectEntries(
         entriesOutbounds,
@@ -465,8 +486,12 @@ class ConnectionCompiler {
       final outbounds = <Map<String, dynamic>>[
         if (finalExit == null) ...connectedEntries else ...exits,
         if (finalExit != null) ...connectedEntries,
+        if (attachOverlay) _node(netbirdOverlay, overlayTag),
         ...helpers,
       ];
+      if (attachOverlay) {
+        nodeTags[overlayTag] = netbirdOverlay.id;
+      }
       _applyOutboundPolicy(outbounds, options, raw: false);
       final bootstrapDomains = ManagedServerDialing.apply(
         outbounds: outbounds,
@@ -497,7 +522,7 @@ class ConnectionCompiler {
       };
       final forwarding = RoutingDnsForwarding.compile(
         policy: dnsSettings.nonAddressPolicy,
-        fixedProxyTag: allVpn ? selector.single : null,
+        fixedProxyTag: allVpn && !allEntriesNetBird ? selector.single : null,
       );
       outbounds.addAll(forwarding.outbounds);
       final sniffing = switch (settings.trafficMode) {
@@ -543,6 +568,66 @@ class ConnectionCompiler {
         ),
         ...?dns.servers,
       ];
+      final hasAnyNetBird =
+          allEntriesNetBird || attachOverlay || _hasNetBirdOutbound(outbounds);
+      final standaloneTag = allEntriesNetBird ? selector.first : null;
+      final userInboundTags = [
+        'tunIn',
+        if (options.lanProxyEnabled) lanProxyInboundTag,
+      ];
+      final effectiveRules =
+          allEntriesNetBird && settings.trafficMode == TrafficMode.smart
+          ? rules.where((rule) => rule.balancerTag != 'proxy')
+          : rules;
+      final forwardingRules =
+          allEntriesNetBird &&
+              dnsSettings.nonAddressPolicy == NonAddressDnsPolicy.proxy
+          ? <XrayRoutingRule>[
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-dns-forward-routes',
+                inboundTag: [RoutingDnsForwarding.proxyTag],
+                attrs: {'netbird': 'routes', 'netbirdTag': standaloneTag!},
+                outboundTag: standaloneTag,
+              ),
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-dns-forward-exit',
+                inboundTag: [RoutingDnsForwarding.proxyTag],
+                attrs: {'netbird': 'exit', 'netbirdTag': standaloneTag},
+                outboundTag: standaloneTag,
+              ),
+              XrayRoutingRule(
+                ruleTag: RoutingDnsForwarding.proxyTag,
+                inboundTag: [RoutingDnsForwarding.proxyTag],
+                outboundTag: 'direct',
+              ),
+            ]
+          : forwarding.rules;
+      final netbirdEntryTags = <String>[
+        for (final outbound in entriesOutbounds)
+          if (outbound['protocol'] == 'netbird' &&
+              outbound['tag'] is String &&
+              (outbound['tag'] as String).isNotEmpty)
+            outbound['tag'] as String,
+      ];
+      final netbirdRouteRules = <XrayRoutingRule>[
+        for (final tag in netbirdEntryTags)
+          XrayRoutingRule(
+            ruleTag:
+                standaloneTag != null && tag == standaloneTag && !attachOverlay
+                ? 'app-netbird-routes'
+                : 'app-netbird-routes-$tag',
+            inboundTag: userInboundTags,
+            attrs: {'netbird': 'routes', 'netbirdTag': tag},
+            outboundTag: tag,
+          ),
+        if (attachOverlay)
+          XrayRoutingRule(
+            ruleTag: 'app-netbird-routes',
+            inboundTag: userInboundTags,
+            attrs: {'netbird': 'routes', 'netbirdTag': overlayTag},
+            outboundTag: overlayTag,
+          ),
+      ];
       final normal = XrayJson(
         env: XrayEnv(
           assetLocation: VpnConstants.datDir,
@@ -570,7 +655,7 @@ class ConnectionCompiler {
         dns: dns,
         fakedns: FakeDns.poolsFor(dns),
         routing: XrayRouting(
-          domainStrategy: allVpn ? 'AsIs' : 'IPIfNonMatch',
+          domainStrategy: allVpn && !hasAnyNetBird ? 'AsIs' : 'IPIfNonMatch',
           balancers: [selection.balancer],
           rules: [
             if (bootstrapDomains.isNotEmpty)
@@ -579,12 +664,25 @@ class ConnectionCompiler {
                 inboundTag: [ManagedServerDialing.dnsTag],
                 outboundTag: 'direct',
               ),
-            ...forwarding.rules,
-            XrayRoutingRule(
-              ruleTag: 'app-default',
-              inboundTag: [dnsProxy],
-              balancerTag: 'proxy',
-            ),
+            ...forwardingRules,
+            if (allEntriesNetBird) ...[
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-dns-exit',
+                inboundTag: [dnsProxy],
+                attrs: {'netbird': 'exit', 'netbirdTag': standaloneTag!},
+                outboundTag: standaloneTag,
+              ),
+              XrayRoutingRule(
+                ruleTag: 'app-default',
+                inboundTag: [dnsProxy],
+                outboundTag: 'direct',
+              ),
+            ] else
+              XrayRoutingRule(
+                ruleTag: 'app-default',
+                inboundTag: [dnsProxy],
+                balancerTag: 'proxy',
+              ),
             if (!allVpn)
               XrayRoutingRule(
                 ruleTag: 'app-direct-dns',
@@ -597,12 +695,27 @@ class ConnectionCompiler {
               port: '53',
               outboundTag: dnsOutbound,
             ),
-            XrayRoutingRule(
-              ruleTag: 'app-tunnel-dot',
-              inboundTag: ['tunIn'],
-              port: '853',
-              balancerTag: 'proxy',
-            ),
+            if (allEntriesNetBird) ...[
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-dot-exit',
+                inboundTag: ['tunIn'],
+                port: '853',
+                attrs: {'netbird': 'exit', 'netbirdTag': standaloneTag!},
+                outboundTag: standaloneTag,
+              ),
+              XrayRoutingRule(
+                ruleTag: 'app-tunnel-dot',
+                inboundTag: ['tunIn'],
+                port: '853',
+                outboundTag: 'direct',
+              ),
+            ] else
+              XrayRoutingRule(
+                ruleTag: 'app-tunnel-dot',
+                inboundTag: ['tunIn'],
+                port: '853',
+                balancerTag: 'proxy',
+              ),
             if (routeApns) ...[
               XrayRoutingRule(
                 ruleTag: 'app-apns-proxy-domain',
@@ -623,21 +736,32 @@ class ConnectionCompiler {
                 balancerTag: 'proxy',
               ),
             ],
-            if (settings.trafficMode == TrafficMode.smart &&
-                _hasNetBirdOutbound(outbounds))
+            ...netbirdRouteRules,
+            ...effectiveRules,
+            if (allEntriesNetBird) ...[
               XrayRoutingRule(
-                ruleTag: 'app-netbird-overlay-ip',
-                ip: ['100.64.0.0/10'],
-                balancerTag: 'proxy',
+                ruleTag: 'app-netbird-exit',
+                inboundTag: userInboundTags,
+                attrs: {'netbird': 'exit', 'netbirdTag': standaloneTag!},
+                outboundTag: standaloneTag,
               ),
-            ...rules,
-            if (selection.automatic)
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-direct-fallback',
+                inboundTag: userInboundTags,
+                outboundTag: 'direct',
+              ),
+            ] else if (attachOverlay) ...[
+              XrayRoutingRule(
+                ruleTag: 'app-netbird-exit',
+                inboundTag: userInboundTags,
+                attrs: {'netbird': 'exit', 'netbirdTag': overlayTag},
+                outboundTag: overlayTag,
+              ),
+            ],
+            if (!allEntriesNetBird && selection.automatic)
               XrayRoutingRule(
                 ruleTag: 'app-proxy-catchall',
-                inboundTag: [
-                  'tunIn',
-                  if (options.lanProxyEnabled) lanProxyInboundTag,
-                ],
+                inboundTag: userInboundTags,
                 balancerTag: 'proxy',
               ),
           ],
@@ -649,6 +773,7 @@ class ConnectionCompiler {
       xrayJson: _encodeRuntime(config, profile?.geoData),
       entries: entries,
       finalExit: finalExit,
+      netbirdOverlay: netbirdOverlay,
       nodeTags: nodeTags,
       profile: profile,
     );

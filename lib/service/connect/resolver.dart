@@ -164,6 +164,8 @@ class ConnectionResolver {
         if (row.type != 'outbound' ||
             row.id <= 0 ||
             row.id == settings.finalExitId ||
+            (settings.selection.kind != SelectionKind.server &&
+                row.id == settings.netbirdOverlayId) ||
             !_inScope(row, settings.selection) ||
             !seen.add(row.id)) {
           continue;

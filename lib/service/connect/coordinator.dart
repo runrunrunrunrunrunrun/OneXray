@@ -420,6 +420,7 @@ class ConnectionCoordinator with WidgetsBindingObserver {
           ? stored.connection.selection.id
           : null,
       finalExitId: stored.connection.smart.finalExitId,
+      netbirdOverlayId: stored.connection.netbirdOverlayId,
     );
   }
 

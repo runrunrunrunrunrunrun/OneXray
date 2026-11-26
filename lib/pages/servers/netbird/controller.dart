@@ -21,6 +21,7 @@ class NetBirdEditorState {
   final bool advancedExpanded;
   final NetBirdAuthMethod authMethod;
   final bool lazyConnection;
+  final bool enableExitNode;
   final NetBirdServerDraft? loadedDraft;
   final String? activeSessionId;
   final String? authUrl;
@@ -37,6 +38,7 @@ class NetBirdEditorState {
     this.advancedExpanded = false,
     this.authMethod = NetBirdAuthMethod.oauth,
     this.lazyConnection = false,
+    this.enableExitNode = false,
     this.loadedDraft,
     this.activeSessionId,
     this.authUrl,
@@ -56,6 +58,7 @@ class NetBirdEditorState {
     bool? advancedExpanded,
     NetBirdAuthMethod? authMethod,
     bool? lazyConnection,
+    bool? enableExitNode,
     NetBirdServerDraft? loadedDraft,
     String? activeSessionId,
     String? authUrl,
@@ -73,6 +76,7 @@ class NetBirdEditorState {
     advancedExpanded: advancedExpanded ?? this.advancedExpanded,
     authMethod: authMethod ?? this.authMethod,
     lazyConnection: lazyConnection ?? this.lazyConnection,
+    enableExitNode: enableExitNode ?? this.enableExitNode,
     loadedDraft: loadedDraft ?? this.loadedDraft,
     activeSessionId: clearOAuthSession
         ? null
@@ -133,10 +137,12 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
               ? NetBirdAuthMethod.oauth
               : draft.authMethod,
           lazyConnection: draft.lazyConnection,
+          enableExitNode: draft.enableExitNode,
           advancedExpanded:
               draft.preSharedKey.isNotEmpty ||
               draft.mtu != null ||
-              draft.lazyConnection,
+              draft.lazyConnection ||
+              draft.enableExitNode,
         ),
       );
     } catch (error) {
@@ -151,6 +157,10 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
 
   void setLazyConnection(bool value) {
     emit(state.copyWith(lazyConnection: value));
+  }
+
+  void setEnableExitNode(bool value) {
+    emit(state.copyWith(enableExitNode: value));
   }
 
   void toggleAdvanced() {
@@ -347,6 +357,7 @@ class NetBirdEditorController extends PageCubit<NetBirdEditorState> {
       preSharedKey: preSharedKeyController.text.trim(),
       mtu: mtu,
       lazyConnection: state.lazyConnection,
+      enableExitNode: state.enableExitNode,
       natExternalIPs: base.natExternalIPs,
       logLevel: base.logLevel,
       dnsRouterInterval: base.dnsRouterInterval,

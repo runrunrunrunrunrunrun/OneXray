@@ -12,6 +12,7 @@ import 'package:onexray/l10n/localizations/app_localizations.dart';
 import 'package:onexray/pages/connect/controller.dart';
 import 'package:onexray/pages/connect/view.dart';
 import 'package:onexray/pages/main/page_visibility.dart';
+import 'package:onexray/pages/servers/netbird/l10n.dart';
 
 class ConnectPage extends StatefulWidget {
   const ConnectPage({super.key});
@@ -118,6 +119,13 @@ class _ConnectPageState extends State<ConnectPage> {
                 onProviderConfigurations: () =>
                     controller.chooseProviderConfigurations(context),
                 onMethod: () => controller.chooseTrafficMethod(context),
+                showNetBirdOverlay: controller.hasNetBirdOverlayNodes,
+                netbirdOverlay: controller.netbirdOverlayTitle(),
+                netbirdOverlayDetail: controller.netbirdOverlayDetail(
+                  NetBirdL10n.of(context),
+                ),
+                onNetBirdOverlay: () =>
+                    controller.chooseNetBirdOverlay(context),
               );
             },
           ),

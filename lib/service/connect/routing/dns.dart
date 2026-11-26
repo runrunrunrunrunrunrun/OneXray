@@ -114,6 +114,7 @@ abstract final class RoutingDns {
       rule.port == null &&
       rule.network == null &&
       (rule.protocol?.isEmpty ?? true) &&
+      (rule.attrs?.isEmpty ?? true) &&
       (rule.localOS?.isEmpty ?? true) &&
       (rule.inboundTag?.isEmpty ?? true);
 }

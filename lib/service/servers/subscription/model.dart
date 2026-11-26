@@ -111,16 +111,19 @@ final class SubscriptionNodeReferences {
     this.runningIds = const {},
     this.fixedId,
     this.finalExitId,
+    this.netbirdOverlayId,
   });
 
   final Set<int> runningIds;
   final int? fixedId;
   final int? finalExitId;
+  final int? netbirdOverlayId;
 
   Set<int> get protectedIds => {
     ...runningIds.where((id) => id > 0),
     if (fixedId != null && fixedId! > 0) fixedId!,
     if (finalExitId != null && finalExitId! > 0) finalExitId!,
+    if (netbirdOverlayId != null && netbirdOverlayId! > 0) netbirdOverlayId!,
   };
 }
 

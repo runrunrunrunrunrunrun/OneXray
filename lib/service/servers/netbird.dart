@@ -25,6 +25,7 @@ class NetBirdServerDraft {
   final String preSharedKey;
   final int? mtu;
   final bool lazyConnection;
+  final bool enableExitNode;
   final List<String> natExternalIPs;
   final String logLevel;
   final String dnsRouterInterval;
@@ -41,6 +42,7 @@ class NetBirdServerDraft {
     this.preSharedKey = '',
     this.mtu,
     this.lazyConnection = false,
+    this.enableExitNode = false,
     this.natExternalIPs = const [],
     this.logLevel = '',
     this.dnsRouterInterval = '',
@@ -84,6 +86,7 @@ class NetBirdServerDraft {
       preSharedKey: (settings['preSharedKey'] as String? ?? '').trim(),
       mtu: (settings['mtu'] as num?)?.toInt(),
       lazyConnection: settings['lazyConnection'] as bool? ?? false,
+      enableExitNode: settings['enableExitNode'] as bool? ?? false,
       natExternalIPs: natExternalIPs,
       logLevel: (settings['logLevel'] as String? ?? '').trim(),
       dnsRouterInterval: dnsRouter,
@@ -109,6 +112,7 @@ class NetBirdServerDraft {
       if (trimmedPsk.isNotEmpty) 'preSharedKey': trimmedPsk,
       if (mtu != null && mtu! > 0) 'mtu': mtu,
       if (lazyConnection) 'lazyConnection': true,
+      if (enableExitNode) 'enableExitNode': true,
       if (natExternalIPs.isNotEmpty) 'natExternalIPs': natExternalIPs,
       if (logLevel.isNotEmpty) 'logLevel': logLevel,
       if (dnsRouterInterval.isNotEmpty) 'dnsRouterInterval': dnsRouterInterval,

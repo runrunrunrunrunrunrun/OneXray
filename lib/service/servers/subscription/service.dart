@@ -157,6 +157,7 @@ class SubscriptionService {
           ? settings.selection.id
           : null,
       finalExitId: settings.smart.finalExitId,
+      netbirdOverlayId: settings.netbirdOverlayId,
     );
   }
 

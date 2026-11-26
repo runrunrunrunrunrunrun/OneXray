@@ -14,6 +14,7 @@ import 'package:onexray/pages/shared/widgets/responsive_content.dart';
 import 'package:onexray/pages/shared/widgets/page_empty_state.dart';
 import 'package:onexray/pages/connect/netbird_status.dart';
 import 'package:onexray/pages/connect/runtime_observatory.dart';
+import 'package:onexray/pages/servers/netbird/l10n.dart';
 import 'package:onexray/service/connect/coordinator.dart';
 import 'package:onexray/service/connect/failure.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -46,6 +47,10 @@ class ConnectView extends StatelessWidget {
     this.providerConfigurationCount = 0,
     this.onProviderConfigurations,
     required this.onMethod,
+    this.showNetBirdOverlay = false,
+    this.netbirdOverlay,
+    this.netbirdOverlayDetail,
+    this.onNetBirdOverlay,
   });
   final ConnectionView view;
   final Widget Function(bool desktop)? trafficBuilder;
@@ -67,6 +72,10 @@ class ConnectView extends StatelessWidget {
   final VoidCallback onConnection, onAddServers, onServer, onMethod;
   final int providerConfigurationCount;
   final VoidCallback? onProviderConfigurations;
+  final bool showNetBirdOverlay;
+  final String? netbirdOverlay;
+  final String? netbirdOverlayDetail;
+  final VoidCallback? onNetBirdOverlay;
 
   bool get _connectionPending => pendingChange == 'connection';
   bool get _busy => view.busy || _connectionPending;
@@ -236,6 +245,19 @@ class ConnectView extends StatelessWidget {
                       methodEnabled && !expert && !_busy ? onMethod : null,
                       includeLabel: false,
                     ),
+                    if (showNetBirdOverlay && !expert && methodEnabled) ...[
+                      const SizedBox(height: 8),
+                      choice(
+                        LucideIcons.network,
+                        NetBirdL10n.of(context).parallelTitle,
+                        netbirdOverlay ?? NetBirdL10n.of(context).parallelOff,
+                        netbirdOverlayDetail,
+                        _busy || pendingChange != null
+                            ? null
+                            : onNetBirdOverlay,
+                        selected: netbirdOverlay != null,
+                      ),
+                    ],
                   ],
                 ),
               ),

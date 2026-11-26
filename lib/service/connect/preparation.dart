@@ -21,6 +21,7 @@ import 'package:onexray/service/connect/routing/custom/service.dart';
 import 'package:onexray/service/connect/routing/region_catalog.dart';
 import 'package:onexray/service/connect/routing/custom/configuration.dart';
 import 'package:onexray/service/connect/routing/custom/state.dart';
+import 'package:onexray/service/servers/outbound/map.dart';
 import 'package:path/path.dart' as p;
 
 Future<List<int>> allocateRuntimePorts(
@@ -330,11 +331,30 @@ class ConnectionPreparation {
         : policy;
     final tun = effectivePolicy.toTun(platform);
     entries = [for (final entry in entries) serverDrafts[entry.id] ?? entry];
+    final overlayId =
+        profile == null && !settings.expert ? settings.netbirdOverlayId : null;
+    ResolvedServer? netbirdOverlay;
+    if (overlayId != null &&
+        !entries.any((entry) => entry.id == overlayId) &&
+        settings.finalExitId != overlayId) {
+      final row = await db.coreConfigDao.searchActiveOutboundRow(overlayId);
+      if (row == null) {
+        throw const FormatException('Attached NetBird node is unavailable');
+      }
+      final candidate = serverDrafts[row.id] ?? ResolvedServer.fromRow(row);
+      if (outboundString(candidate.outbound, 'protocol') != 'netbird') {
+        throw const FormatException(
+          'Attached NetBird node must use the netbird protocol',
+        );
+      }
+      netbirdOverlay = candidate;
+    }
     onResolved?.call({
       for (final entry in entries) entry.id,
       if (profile != null) profile.id,
       if (profile == null && settings.finalExitId != null)
         settings.finalExitId!,
+      if (netbirdOverlay != null) netbirdOverlay.id,
     });
     ResolvedServer? finalExit;
     if (profile == null && settings.finalExitId != null) {
@@ -410,6 +430,7 @@ class ConnectionPreparation {
       settings: settings,
       entries: entries,
       finalExit: finalExit,
+      netbirdOverlay: netbirdOverlay,
       raw: rawConfig,
       profile: profile,
       custom: profile == null ? custom : null,
@@ -440,7 +461,7 @@ class ConnectionPreparation {
       ),
       if (profile != null) ...profile.geoDataDependencies,
     });
-    for (final server in [...entries, ?finalExit]) {
+    for (final server in [...entries, ?finalExit, ?netbirdOverlay]) {
       final row = await db.coreConfigDao.searchActiveOutboundRow(server.id);
       if (row == null ||
           row.type != 'outbound' ||

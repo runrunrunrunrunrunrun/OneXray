@@ -14,8 +14,10 @@ import 'package:onexray/pages/main/navigation.dart';
 import 'package:onexray/pages/shared/alert.dart';
 import 'package:onexray/pages/shared/page_cubit.dart';
 import 'package:onexray/pages/connect/dialogs.dart';
+import 'package:onexray/pages/connect/netbird_picker.dart';
 import 'package:onexray/pages/connect/provider_picker.dart';
 import 'package:onexray/pages/connect/target_picker.dart';
+import 'package:onexray/pages/servers/netbird/l10n.dart';
 import 'package:onexray/service/connect/resolver.dart';
 import 'package:onexray/service/connect/raw/editor.dart';
 import 'package:onexray/service/connect/coordinator.dart';
@@ -383,10 +385,48 @@ class ConnectController extends PageCubit<ConnectPageState> with ServerLabels {
     if (entries.isEmpty) return null;
     final names = entries.map((entry) => entry.name);
     final exit = runtime.finalExit;
+    final overlay = runtime.netbirdOverlay;
+    final exitSuffix = exit == null ? '' : ' → ${exit.name}';
+    final overlaySuffix = overlay == null ? '' : ' + NetBird(${overlay.name})';
     return (
       entryCount: entries.length,
-      path: '${names.join(' + ')}${exit == null ? '' : ' → ${exit.name}'}',
+      path: '${names.join(' + ')}$exitSuffix$overlaySuffix',
     );
+  }
+
+  List<CoreConfigData> get netbirdOverlayNodes => servers
+      .where(
+        (row) =>
+            row.id > 0 &&
+            catalog.outboundEligible(row) &&
+            catalog.display(row).protocol.toLowerCase() == 'netbird',
+      )
+      .toList(growable: false);
+
+  bool get hasNetBirdOverlayNodes =>
+      netbirdOverlayNodes.isNotEmpty ||
+      configuration.connection.netbirdOverlayId != null;
+
+  String? netbirdOverlayTitle() {
+    final overlayId = configuration.connection.netbirdOverlayId;
+    if (overlayId == null) return null;
+    final row = servers.where((row) => row.id == overlayId).firstOrNull;
+    if (row == null) return null;
+    return catalog.display(row).name;
+  }
+
+  String? netbirdOverlayDetail(NetBirdL10n nl) {
+    final selection = configuration.connection.selection;
+    if (selection.kind == SelectionKind.server) {
+      final row = servers.where((row) => row.id == selection.id).firstOrNull;
+      if (row != null &&
+          catalog.display(row).protocol.toLowerCase() == 'netbird') {
+        return nl.parallelIncludedInPrimary;
+      }
+    }
+    return configuration.connection.netbirdOverlayId == null
+        ? nl.parallelSubtitle
+        : null;
   }
 
   String methodTitle(AppLocalizations l10n) => providerConfiguration
@@ -455,6 +495,8 @@ class ConnectController extends PageCubit<ConnectPageState> with ServerLabels {
         ? 'raw:${values['rawId']}'
         : values.containsKey('selection')
         ? 'selection'
+        : values.containsKey('netbirdOverlayId')
+        ? 'netbirdOverlay'
         : values.containsKey('trafficMode')
         ? 'method'
         : 'expert';
@@ -634,6 +676,41 @@ class ConnectController extends PageCubit<ConnectPageState> with ServerLabels {
 
   Future<void> chooseTrafficMethod(BuildContext context) =>
       context.pushScoped(AppPageDestination.routing);
+
+  Future<void> chooseNetBirdOverlay(BuildContext context) async {
+    if (connectionView.busy || pendingChange != null) return;
+    final nl = NetBirdL10n.of(context);
+    final choice = await showConnectDialog<NetBirdOverlayChoice>(
+      context,
+      (_) => NetBirdOverlayPicker(
+        nodes: netbirdOverlayNodes,
+        catalog: catalog,
+        selectedId: configuration.connection.netbirdOverlayId,
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+    if (choice.clear) {
+      await change(
+        context,
+        {'netbirdOverlayId': null},
+        label: '${nl.parallelTitle}: ${nl.parallelOff}',
+      );
+      return;
+    }
+    final id = choice.id;
+    if (id == null) return;
+    final row = servers.where((item) => item.id == id).firstOrNull;
+    final name = row == null ? 'NetBird' : catalog.display(row).name;
+    await change(
+      context,
+      {'netbirdOverlayId': id},
+      validateAssets: () => ServerAssetService(
+        database: db,
+        coordinator: coordinator,
+      ).validateSelection(ServerSelection.server(id)),
+      label: name,
+    );
+  }
 
   ConnectionSettings _ordinarySettings(ConnectionSettings settings) =>
       ConnectionSettings.fromJson({...settings.toJson(), 'expert': false});

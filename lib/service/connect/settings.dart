@@ -139,6 +139,7 @@ class ConnectionSettings {
   final ServerSelection? rememberedOrdinarySelection;
   final TrafficMode trafficMode;
   final int? customId;
+  final int? netbirdOverlayId;
   final SmartRoutingSettings smart;
 
   ConnectionSettings({
@@ -148,6 +149,7 @@ class ConnectionSettings {
     this.rememberedOrdinarySelection,
     this.trafficMode = TrafficMode.smart,
     this.customId,
+    this.netbirdOverlayId,
     SmartRoutingSettings? smart,
   }) : smart = smart ?? SmartRoutingSettings();
 
@@ -165,6 +167,7 @@ class ConnectionSettings {
           value['trafficMode'] as String? ?? 'smart',
         ),
         customId: value['customId'] as int?,
+        netbirdOverlayId: value['netbirdOverlayId'] as int?,
         smart: SmartRoutingSettings.fromJson(
           value['smart'] as Map<String, dynamic>? ?? {},
         ),
@@ -178,6 +181,7 @@ class ConnectionSettings {
       'rememberedOrdinarySelection': rememberedOrdinarySelection!.toJson(),
     'trafficMode': trafficMode.name,
     'customId': customId,
+    if (netbirdOverlayId != null) 'netbirdOverlayId': netbirdOverlayId,
     'smart': smart.toJson(),
   };
 
@@ -197,6 +201,8 @@ class ConnectionSettings {
 
   int? get finalExitId =>
       !expert && trafficMode == TrafficMode.smart ? smart.finalExitId : null;
+
+  int? get activeNetBirdOverlayId => !expert ? netbirdOverlayId : null;
 
   static ServerSelection? _readRememberedSelection(Object? value) {
     if (value is! Map) return null;

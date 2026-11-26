@@ -149,6 +149,7 @@ class ConnectionRuntime {
   final String xrayJson;
   final List<RuntimeNode> entries;
   final RuntimeNode? finalExit;
+  final RuntimeNode? netbirdOverlay;
   final RuntimeProfile? profile;
 
   /// Personal Raw identity at preparation time, independent of later row names.
@@ -173,6 +174,7 @@ class ConnectionRuntime {
     required this.xrayJson,
     required this.entries,
     required this.finalExit,
+    this.netbirdOverlay,
     this.profile,
     this.rawName,
     required this.startedAt,
@@ -188,6 +190,7 @@ class ConnectionRuntime {
     xrayJson: xrayJson,
     entries: entries,
     finalExit: finalExit,
+    netbirdOverlay: netbirdOverlay,
     profile: profile,
     rawName: rawName,
     startedAt: value,
@@ -214,6 +217,9 @@ class ConnectionRuntime {
     final finalExit = compiled.finalExit == null
         ? null
         : RuntimeNode.fromServer(compiled.finalExit!);
+    final netbirdOverlay = compiled.netbirdOverlay == null
+        ? null
+        : RuntimeNode.fromServer(compiled.netbirdOverlay!);
     final profile = compiled.profile == null
         ? null
         : RuntimeProfile.fromProfile(compiled.profile!);
@@ -225,6 +231,7 @@ class ConnectionRuntime {
       'configuration': configuration.toJson(),
       'entries': [for (final entry in entries) entry.toJson()],
       'finalExit': finalExit?.toJson(),
+      if (netbirdOverlay != null) 'netbirdOverlay': netbirdOverlay.toJson(),
       if (profile != null) 'profile': profile.toJson(),
       'rawName': ?rawName,
       if (selectionFallback != null)
@@ -247,6 +254,7 @@ class ConnectionRuntime {
       xrayJson: compiled.xrayJson,
       entries: List.unmodifiable(entries),
       finalExit: finalExit,
+      netbirdOverlay: netbirdOverlay,
       profile: profile,
       rawName: rawName,
       notice: notice,
@@ -276,6 +284,8 @@ class ConnectionRuntime {
         ) ||
         (metadata['finalExit'] != null &&
             metadata['finalExit'] is! Map<String, dynamic>) ||
+        (metadata['netbirdOverlay'] != null &&
+            metadata['netbirdOverlay'] is! Map<String, dynamic>) ||
         (metadata['profile'] != null &&
             metadata['profile'] is! Map<String, dynamic>) ||
         (metadata['rawName'] != null && metadata['rawName'] is! String) ||
@@ -316,6 +326,11 @@ class ConnectionRuntime {
       finalExit: metadata['finalExit'] == null
           ? null
           : RuntimeNode.fromJson(metadata['finalExit'] as Map<String, dynamic>),
+      netbirdOverlay: metadata['netbirdOverlay'] == null
+          ? null
+          : RuntimeNode.fromJson(
+              metadata['netbirdOverlay'] as Map<String, dynamic>,
+            ),
       profile: metadata['profile'] == null
           ? null
           : RuntimeProfile.fromJson(
@@ -336,6 +351,7 @@ class ConnectionRuntime {
   Set<int> get nodeIds => {
     for (final entry in entries) entry.id,
     if (finalExit != null) finalExit!.id,
+    if (netbirdOverlay != null) netbirdOverlay!.id,
     if (profile != null) profile!.id,
   };
 }

@@ -348,6 +348,8 @@ class ServerAssetService {
         ...current.connection.toJson(),
         if (invalidSelection)
           'selection': const ServerSelection.automatic().toJson(),
+        if (removed.contains(current.connection.netbirdOverlayId))
+          'netbirdOverlayId': null,
         'smart': {
           ...current.connection.smart.toJson(),
           if (removed.contains(current.connection.smart.finalExitId))

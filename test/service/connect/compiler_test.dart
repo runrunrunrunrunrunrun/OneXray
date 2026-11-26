@@ -2367,7 +2367,7 @@ void main() {
     }
   });
 
-  test('NetBird Smart Routing routes 100.64.0.0/10 to proxy before direct', () {
+  test('NetBird automatic routing compiles standalone and parallel plans', () {
     final netbirdNode = ResolvedServer(
       id: 99,
       sourceId: 1,
@@ -2377,34 +2377,184 @@ void main() {
         'settings': {
           'managementUrl': 'https://net.l0op.site',
           'setupKey': 'test-key',
+          'enableExitNode': true,
         },
       },
     );
-    final smartSettings = ConnectionSettings(trafficMode: TrafficMode.smart);
-    final nbPlan = ConnectionCompiler.compile(
-      settings: smartSettings,
+    final proxyNode = node(1, address: 'node.test');
+    final custom = RoutingProfileState(
+      name: 'Custom',
+      rules: [
+        RoutingRuleState(
+          domain: ['geosite:CN'],
+          action: RoutingRuleAction.direct,
+        ),
+      ],
+    );
+
+    // 1) Standalone NetBird in smart, allVpn, and custom modes:
+    for (final mode in [
+      TrafficMode.smart,
+      TrafficMode.allVpn,
+      TrafficMode.custom,
+    ]) {
+      final standalone = ConnectionCompiler.compile(
+        settings: ConnectionSettings(trafficMode: mode),
+        entries: [netbirdNode],
+        custom: mode == TrafficMode.custom ? custom : null,
+        regions: catalog,
+        options: options(
+          platform: ConnectionPlatform.windows,
+          interfaceName: 'Ethernet',
+        ),
+      );
+      expect(standalone.config['routing']['domainStrategy'], 'IPIfNonMatch');
+      final nbRules =
+          (standalone.config['routing']['rules'] as List).cast<Map>();
+      final routesIdx = nbRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-netbird-routes',
+      );
+      final exitIdx = nbRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-netbird-exit',
+      );
+      final fallbackIdx = nbRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-netbird-direct-fallback',
+      );
+      expect(routesIdx, greaterThanOrEqualTo(0));
+      expect(exitIdx, greaterThan(routesIdx));
+      expect(fallbackIdx, equals(exitIdx + 1));
+      expect(nbRules[routesIdx]['attrs'], {
+        'netbird': 'routes',
+        'netbirdTag': 'app-entry-0',
+      });
+      expect(nbRules[routesIdx]['outboundTag'], 'app-entry-0');
+      expect(nbRules[exitIdx]['attrs'], {
+        'netbird': 'exit',
+        'netbirdTag': 'app-entry-0',
+      });
+      expect(nbRules[exitIdx]['outboundTag'], 'app-entry-0');
+      expect(nbRules[fallbackIdx]['outboundTag'], 'direct');
+      expect(
+        nbRules.any((rule) => rule['ruleTag'] == 'app-proxy-catchall'),
+        isFalse,
+      );
+      expect(
+        nbRules.any(
+          (rule) =>
+              rule['ruleTag'] == 'app-netbird-dns-exit' &&
+              rule['outboundTag'] == 'app-entry-0',
+        ),
+        isTrue,
+      );
+      expect(
+        nbRules.any(
+          (rule) =>
+              rule['ruleTag'] == 'app-default' &&
+              rule['outboundTag'] == 'direct',
+        ),
+        isTrue,
+      );
+      if (mode == TrafficMode.smart) {
+        final directIpIdx = nbRules.indexWhere(
+          (rule) => rule['ruleTag'] == 'app-smart-direct-ip',
+        );
+        expect(directIpIdx, greaterThan(routesIdx));
+        expect(exitIdx, greaterThan(directIpIdx));
+      }
+      expect(
+        XrayJson.fromJson(standalone.config).toJson(),
+        standalone.config,
+      );
+    }
+
+    // 2) Parallel attached NetBird alongside a normal proxy node:
+    for (final mode in [
+      TrafficMode.smart,
+      TrafficMode.allVpn,
+      TrafficMode.custom,
+    ]) {
+      final parallel = ConnectionCompiler.compile(
+        settings: ConnectionSettings(
+          trafficMode: mode,
+          netbirdOverlayId: netbirdNode.id,
+        ),
+        entries: [proxyNode],
+        netbirdOverlay: netbirdNode,
+        custom: mode == TrafficMode.custom ? custom : null,
+        regions: catalog,
+        options: options(
+          platform: ConnectionPlatform.windows,
+          interfaceName: 'Ethernet',
+        ),
+      );
+      expect(parallel.nodeTags['app-netbird'], netbirdNode.id);
+      expect(parallel.netbirdOverlay?.id, netbirdNode.id);
+      final outbounds = (parallel.config['outbounds'] as List).cast<Map>();
+      expect(
+        outbounds.any(
+          (o) => o['tag'] == 'app-netbird' && o['protocol'] == 'netbird',
+        ),
+        isTrue,
+      );
+      final dnsServers =
+          (parallel.config['dns']['servers'] as List).cast<Map>();
+      expect(
+        dnsServers.any(
+          (s) =>
+              s['tag'] == 'app-dns-bootstrap' &&
+              (s['domains'] as List?)?.contains('full:net.l0op.site') == true,
+        ),
+        isTrue,
+      );
+      expect(parallel.config['routing']['domainStrategy'], 'IPIfNonMatch');
+      final pRules = (parallel.config['routing']['rules'] as List).cast<Map>();
+      final routesIdx = pRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-netbird-routes',
+      );
+      final exitIdx = pRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-netbird-exit',
+      );
+      final catchAllIdx = pRules.indexWhere(
+        (rule) => rule['ruleTag'] == 'app-proxy-catchall',
+      );
+      expect(routesIdx, greaterThanOrEqualTo(0));
+      expect(pRules[routesIdx]['outboundTag'], 'app-netbird');
+      expect(pRules[routesIdx]['attrs'], {
+        'netbird': 'routes',
+        'netbirdTag': 'app-netbird',
+      });
+      expect(exitIdx, greaterThan(routesIdx));
+      expect(catchAllIdx, equals(exitIdx + 1));
+      expect(pRules[catchAllIdx]['balancerTag'], 'proxy');
+      expect(XrayJson.fromJson(parallel.config).toJson(), parallel.config);
+    }
+
+    // 3) Selecting the same NetBird node as primary + overlay deduplicates it:
+    final dedup = ConnectionCompiler.compile(
+      settings: ConnectionSettings(
+        trafficMode: TrafficMode.smart,
+        netbirdOverlayId: netbirdNode.id,
+      ),
       entries: [netbirdNode],
+      netbirdOverlay: netbirdNode,
       regions: catalog,
       options: options(
         platform: ConnectionPlatform.windows,
         interfaceName: 'Ethernet',
       ),
     );
-    final nbRules = (nbPlan.config['routing']['rules'] as List).cast<Map>();
-    final overlayIdx = nbRules.indexWhere(
-      (rule) => rule['ruleTag'] == 'app-netbird-overlay-ip',
+    expect(dedup.nodeTags.containsKey('app-netbird'), isFalse);
+    expect(
+      (dedup.config['outbounds'] as List)
+          .where((o) => (o as Map)['protocol'] == 'netbird')
+          .length,
+      1,
     );
-    final directIpIdx = nbRules.indexWhere(
-      (rule) => rule['ruleTag'] == 'app-smart-direct-ip',
-    );
-    expect(overlayIdx, greaterThanOrEqualTo(0));
-    expect(directIpIdx, greaterThan(overlayIdx));
-    expect(nbRules[overlayIdx]['ip'], ['100.64.0.0/10']);
-    expect(nbRules[overlayIdx]['balancerTag'], 'proxy');
 
+    // 4) Ordinary connection without NetBird preserves exact ordinary behavior:
     final ordinaryPlan = ConnectionCompiler.compile(
-      settings: smartSettings,
-      entries: [node(1, address: 'node.test')],
+      settings: ConnectionSettings(trafficMode: TrafficMode.smart),
+      entries: [proxyNode],
       regions: catalog,
       options: options(
         platform: ConnectionPlatform.windows,
@@ -2414,7 +2564,7 @@ void main() {
     final ordinaryRules = (ordinaryPlan.config['routing']['rules'] as List)
         .cast<Map>();
     expect(
-      ordinaryRules.any((rule) => rule['ruleTag'] == 'app-netbird-overlay-ip'),
+      ordinaryRules.any((rule) => '${rule['ruleTag']}'.contains('netbird')),
       isFalse,
     );
   });

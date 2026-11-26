@@ -80,6 +80,7 @@ class _NetBirdOutboundCard extends StatelessWidget {
         '${nl.livePeers}: ${status.peersConnected}/${status.peersTotal}';
     final relaysLabel =
         '${nl.liveRelays}: $availableRelays/${status.relays.length}';
+    final routesLabel = '${nl.liveRoutes}: ${status.routes.length}';
     final fg = palette.foreground;
     final titleStyle = AppTypography.rowTitle.copyWith(color: fg);
     final stateStyle = Theme.of(context).textTheme.labelMedium
@@ -144,8 +145,28 @@ class _NetBirdOutboundCard extends StatelessWidget {
             _StatusChip(label: peersLabel, color: palette.mutedStrong),
             if (status.relays.isNotEmpty)
               _StatusChip(label: relaysLabel, color: palette.mutedStrong),
+            if (status.routes.isNotEmpty)
+              _StatusChip(label: routesLabel, color: palette.mutedStrong),
+            if (status.exitNodeActive || status.exitNodeAvailable)
+              _StatusChip(
+                label: status.exitNodeActive
+                    ? nl.liveExitNodeActive
+                    : nl.liveExitNodeStandby,
+                color: status.exitNodeActive
+                    ? palette.runningText
+                    : palette.mutedStrong,
+              ),
           ],
         ),
+        if (status.routes.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            status.routes.take(6).join(', '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.code.copyWith(color: mutedFg),
+          ),
+        ],
         if (hasAlert) ...[
           const SizedBox(height: 8),
           Container(
