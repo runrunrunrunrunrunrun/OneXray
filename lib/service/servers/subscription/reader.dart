@@ -102,7 +102,9 @@ class SubscriptionConfigurationReader {
         input.panel == SubscriptionPanel.remnawave ||
         value is List ||
         (value is Map<String, dynamic> &&
-            value.keys.any((key) => key != 'outbounds'));
+            value.keys.any((key) => key != 'outbounds') &&
+            (input.mode == SubscriptionMode.providerManaged ||
+                !_isSingboxJsonDocument(value)));
     if (!complete) {
       if (input.mode == SubscriptionMode.providerManaged) {
         throw const FormatException(
@@ -284,5 +286,18 @@ class SubscriptionConfigurationReader {
       mode: SubscriptionMode.appManaged,
       convertedToOrdinary: convertedToOrdinary,
     );
+  }
+
+  static bool _isSingboxJsonDocument(Map<String, dynamic> value) {
+    for (final key in const ['outbounds', 'endpoints']) {
+      final list = value[key];
+      if (list is! List || list.isEmpty) continue;
+      for (final item in list) {
+        if (item is Map && item['type'] is String && !item.containsKey('protocol')) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

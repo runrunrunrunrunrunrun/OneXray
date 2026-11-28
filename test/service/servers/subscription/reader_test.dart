@@ -670,4 +670,45 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('full sing-box JSON document routes to the node parser unless providerManaged or remnawave', () async {
+    final singboxConfig = jsonEncode({
+      'log': {'level': 'info'},
+      'inbounds': [
+        {'type': 'mixed', 'tag': 'mixed-in', 'listen_port': 2080},
+      ],
+      'outbounds': [
+        {
+          'type': 'vless',
+          'tag': 'Node A',
+          'server': 'example.com',
+          'server_port': 443,
+          'uuid': '12345678-abcd-abcd-abcd-123456789abc',
+        },
+        {'type': 'direct', 'tag': 'direct'},
+      ],
+    });
+    final reader = _reader(
+      readNodes: (text) async {
+        expect(text, singboxConfig);
+        return [
+          CoreConfigCompanion.insert(
+            name: 'Node A',
+            type: 'outbound',
+            tags: '',
+            delay: 9000,
+            subId: 0,
+          ),
+        ];
+      },
+    );
+    final result = await reader.read(singboxConfig, _input);
+    expect(result.mode, SubscriptionMode.appManaged);
+    expect(result.count, 1);
+
+    await expectLater(
+      reader.read(singboxConfig, remnawave),
+      throwsFormatException,
+    );
+  });
 }
