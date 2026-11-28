@@ -143,9 +143,9 @@ class BuilderTest(unittest.TestCase):
 
     def test_failed_native_build_leaves_existing_artifacts_untouched(self):
         builder = Builder("OneXray", "windows", str(self.root / "build_scripts"))
-        native = self.root / "windows/app/libXray.dll"
+        native = self.root / "windows/app/OneXrayCore.exe"
         native.parent.mkdir(parents=True)
-        native.write_bytes(b"previous library")
+        native.write_bytes(b"previous binary")
         with (
             mock.patch(
                 "app.builder.run_command",
@@ -154,7 +154,7 @@ class BuilderTest(unittest.TestCase):
             self.assertRaises(subprocess.CalledProcessError),
         ):
             builder.build_core()
-        self.assertEqual(native.read_bytes(), b"previous library")
+        self.assertEqual(native.read_bytes(), b"previous binary")
 
     def test_linux_collects_current_packages_and_restores_debian_configuration(self):
         config = self.root / "linux/packaging/deb/make_config.yaml"

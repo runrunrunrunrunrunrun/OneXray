@@ -314,6 +314,26 @@ class WindowsPackagingTest(unittest.TestCase):
         ):
             self.assertIn(setting, config)
 
+    def test_windows_zip_recompresses_at_maximum_level(self):
+        builder = self.builder("x64", "exe")
+        dist = self.root / "dist/26.7.3"
+        dist.mkdir(parents=True)
+        raw_zip = dist / "OneXray-windows-amd64.zip"
+        payload = b"repetitive-binary-padding-" * 4096
+        with zipfile.ZipFile(raw_zip, "w", compression=zipfile.ZIP_STORED) as pkg:
+            pkg.writestr("OneXrayCore.exe", payload)
+        stored_size = raw_zip.stat().st_size
+
+        def command(args, **kwargs):
+            (dist / "OneXray-windows-amd64.exe").write_bytes(b"exe")
+
+        with patch("app.builder.run_command", side_effect=command):
+            builder.build_app()
+        out_zip = self.output / "OneXray-windows-amd64.zip"
+        self.assertLess(out_zip.stat().st_size, stored_size // 10)
+        with zipfile.ZipFile(out_zip, "r") as pkg:
+            self.assertEqual(pkg.read("OneXrayCore.exe"), payload)
+
 
 NS = {
     "f": "http://schemas.microsoft.com/appx/manifest/foundation/windows10",

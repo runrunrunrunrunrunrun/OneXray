@@ -50,8 +50,11 @@ class WindowsExeFfiApi extends WindowsFfiApi {
       _filesDirectory ?? await super.getTunFilesDir();
 
   @override
+  String get desktopInvokeExecutable => _corePath;
+
+  @override
   Future<void> ensureRuntime() =>
-      checkRuntimeFiles(const ['libXray.dll', 'OneXrayCore.exe', 'wintun.dll']);
+      checkRuntimeFiles(const ['OneXrayCore.exe', 'wintun.dll']);
 
   @override
   Future<void> observeVpnStatus() => _monitor.observe();

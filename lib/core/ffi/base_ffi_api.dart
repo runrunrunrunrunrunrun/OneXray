@@ -1,17 +1,14 @@
-import 'dart:ffi';
+import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 
-import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart' show protected;
-import 'package:isolate_manager/isolate_manager.dart';
-import 'package:onexray/core/ffi/generated_bindings.dart';
+import 'package:onexray/core/ffi/desktop_invoke_worker.dart';
 import 'package:onexray/core/pigeon/messages.g.dart';
 import 'package:onexray/core/pigeon/model.dart';
 import 'package:onexray/core/tools/empty.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:onexray/core/tools/platform.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 List<String> desktopCoreRunArguments({
   required String dns,
@@ -157,62 +154,28 @@ abstract class BaseFfiApi {
     );
   }
 
-  final _sharedIsolate = IsolateManager.createShared(concurrent: 1);
-  void stopSharedIsolate() {
-    _sharedIsolate.stop();
+  @protected
+  String get desktopInvokeExecutable {
+    final name = AppPlatform.isWindows ? 'OneXrayCore.exe' : 'OneXrayCore';
+    return p.join(p.dirname(Platform.resolvedExecutable), name);
   }
 
-  Future<String> invoke(String requestJson) async {
-    return _sharedIsolate.compute(_cgoInvoke, requestJson);
+  DesktopInvokeWorker? _invokeWorker;
+
+  DesktopInvokeWorker get _worker => _invokeWorker ??= DesktopInvokeWorker(
+    resolveExecutable: () => desktopInvokeExecutable,
+  );
+
+  void stopSharedIsolate() {
+    final worker = _invokeWorker;
+    _invokeWorker = null;
+    if (worker != null) {
+      unawaited(worker.stop());
+    }
   }
+
+  Future<String> invoke(String requestJson) => _worker.invoke(requestJson);
 
   Future<String> invokeConcurrent(String requestJson) =>
-      Isolate.run(() => _cgoInvoke(requestJson));
-}
-
-class _CoreLib {
-  late final NativeLibrary _lib;
-
-  static final _CoreLib _singleton = _CoreLib._internal();
-
-  factory _CoreLib() => _singleton;
-
-  _CoreLib._internal() {
-    var libName = "";
-    if (AppPlatform.isLinux) {
-      libName = "libXray.so";
-    } else if (AppPlatform.isWindows) {
-      libName = "libXray.dll";
-    }
-    final lib = DynamicLibrary.open(libName);
-    _lib = NativeLibrary(lib);
-  }
-}
-
-@pragma('vm:entry-point')
-@isolateManagerSharedWorker
-String _cgoInvoke(String requestJson) {
-  final req = _convertStringToPointer(requestJson);
-  try {
-    final resPointer = _CoreLib()._lib.CGoInvoke(req);
-    return _convertPointerToString(resPointer);
-  } finally {
-    calloc.free(req);
-  }
-}
-
-Pointer<Char> _convertStringToPointer(String text) {
-  final pointer = text.toNativeUtf8().cast<Char>();
-  return pointer;
-}
-
-String _convertPointerToString(Pointer<Char> pointer) {
-  if (pointer == nullptr) {
-    throw StateError('CGoInvoke returned a null response');
-  }
-  try {
-    return pointer.cast<Utf8>().toDartString();
-  } finally {
-    _CoreLib()._lib.CGoFree(pointer);
-  }
+      _worker.invoke(requestJson);
 }

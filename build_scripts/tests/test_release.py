@@ -10,7 +10,10 @@ from verify_release import verify_release
 PUBLIC_PACKAGES = {
     "ios": ["ios/OneXray-ios.ipa"],
     "macos": ["macos_se/OneXray-macos-universal.zip"],
-    "android": ["android-universal/OneXray-android-universal.apk"],
+    "android": [
+        "android-apk/OneXray-android-arm64-v8a.apk",
+        "android-apk/OneXray-android-x86_64.apk",
+    ],
     "linux": [
         "linux-x64/OneXray-linux-x86_64.zip",
         "linux-x64/OneXray-linux-x86_64.deb",

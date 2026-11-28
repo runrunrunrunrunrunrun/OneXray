@@ -7,6 +7,7 @@ import 'package:onexray/core/errors/failure.dart';
 import 'package:onexray/core/ffi/base_ffi_api.dart';
 import 'package:onexray/core/ffi/core_process_monitor.dart';
 import 'package:onexray/core/ffi/desktop_core_exit.dart';
+import 'package:onexray/core/ffi/desktop_invoke_worker.dart';
 import 'package:onexray/core/ffi/linux_core_exit.dart';
 import 'package:onexray/core/model/tun_json.dart';
 import 'package:onexray/core/pigeon/flutter_api.dart';
@@ -261,8 +262,12 @@ class LinuxFfiApi extends BaseFfiApi {
     if (pids.any((pid) => pid <= 0)) {
       throw const FormatException('Invalid Core PID returned by pgrep');
     }
+    pids.removeAll(DesktopInvokeWorker.activePids);
     return pids;
   }
+
+  @override
+  String get desktopInvokeExecutable => corePath;
 
   String get corePath {
     if (_executablePath != null) return _executablePath;

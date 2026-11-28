@@ -5,58 +5,80 @@ import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:onexray/core/ffi/desktop_core_exit.dart';
+import 'package:onexray/core/ffi/desktop_invoke_worker.dart';
 import 'package:path/path.dart' as p;
 import 'package:win32/win32.dart';
+
+Set<int> _defaultExcludedPids() => Set<int>.of(DesktopInvokeWorker.activePids);
+Set<int> _noExcludedPids() => const <int>{};
 
 /// Discovery, UAC and exit waits run off the Flutter isolate.
 class WindowsCoreProcess {
   final String _name;
+  final Set<int> Function() _excludedPids;
 
-  WindowsCoreProcess() : _name = 'OneXrayCore.exe';
+  WindowsCoreProcess()
+    : _name = 'OneXrayCore.exe',
+      _excludedPids = _defaultExcludedPids;
 
   @visibleForTesting
-  WindowsCoreProcess.forTesting({required String processName})
-    : _name = processName;
+  WindowsCoreProcess.forTesting({
+    required String processName,
+    Set<int> Function()? excludedPids,
+  }) : _name = processName,
+       _excludedPids = excludedPids ?? _noExcludedPids;
 
-  Future<Set<int>> findPids() => Isolate.run(() => _namedPids(_name));
+  Future<Set<int>> findPids() {
+    final excluded = _excludedPids();
+    return Isolate.run(() => _namedPids(_name, excluded));
+  }
 
-  Future<void> stopAll() => Isolate.run(() => _stopNamed(_name));
+  Future<void> stopAll() {
+    final excluded = _excludedPids();
+    return Isolate.run(() => _stopNamed(_name, excluded));
+  }
 
   DesktopCoreExitWatch watchExit(int pid) {
+    final excluded = _excludedPids();
     final created = CreateEvent(null, true, false, null);
     if (!created.value.isValid) _failed('CreateEvent', created.error);
     final cancelEvent = created.value;
     var closed = false;
-    final exited = _waitForExit(pid, _name, cancelEvent.address).whenComplete(
-      () {
-        closed = true;
-        CloseHandle(cancelEvent);
-      },
-    );
+    final exited = _waitForExit(pid, _name, cancelEvent.address, excluded)
+        .whenComplete(() {
+          closed = true;
+          CloseHandle(cancelEvent);
+        });
     return DesktopCoreExitWatch(exited, () {
       if (!closed) SetEvent(cancelEvent);
     });
   }
 
-  Future<int> start(String executable, List<String> arguments) =>
-      Isolate.run(() {
-        final handle = _launchElevated(executable, arguments);
-        try {
-          final pid = GetProcessId(handle);
-          if (pid.value == 0) _failed('GetProcessId', pid.error);
-          return pid.value;
-        } catch (_) {
-          _stopNamed(_name);
-          rethrow;
-        } finally {
-          CloseHandle(handle);
-        }
-      });
+  Future<int> start(String executable, List<String> arguments) {
+    final excluded = _excludedPids();
+    return Isolate.run(() {
+      final handle = _launchElevated(executable, arguments);
+      try {
+        final pid = GetProcessId(handle);
+        if (pid.value == 0) _failed('GetProcessId', pid.error);
+        return pid.value;
+      } catch (_) {
+        _stopNamed(_name, excluded);
+        rethrow;
+      } finally {
+        CloseHandle(handle);
+      }
+    });
+  }
 }
 
-Future<bool> _waitForExit(int pid, String name, int cancelAddress) =>
-    Isolate.run(() {
-      final process = _openNamed(pid, name);
+Future<bool> _waitForExit(
+  int pid,
+  String name,
+  int cancelAddress, [
+  Set<int> excluded = const <int>{},
+]) => Isolate.run(() {
+  final process = _openNamed(pid, name, excluded);
       if (process == null) return true;
       try {
         return using((arena) {
@@ -112,101 +134,111 @@ HANDLE _launchElevated(String executable, List<String> arguments) {
 }
 
 // Query names directly: no executable-path, owner or session lookup is needed.
-Set<int> _namedPids(String name) => using((arena) {
-  const initialSnapshotBytes = 64 * 1024;
-  const maxSnapshotBytes = 64 * 1024 * 1024;
-  final required = arena<Uint32>();
-  var capacity = initialSnapshotBytes;
-  while (capacity <= maxSnapshotBytes) {
-    final buffer = calloc<Uint8>(capacity);
-    try {
-      final status = NtQuerySystemInformation(
-        SystemProcessInformation,
-        buffer,
-        capacity,
-        required,
-      );
-      if (status == STATUS_INFO_LENGTH_MISMATCH) {
-        capacity = required.value > capacity
-            ? required.value + initialSnapshotBytes
-            : capacity * 2;
-        continue;
-      }
-      if (status.isError) throw WindowsException(status.toHRESULT());
-      final pids = <int>{};
-      var offset = 0;
-      while (true) {
-        if (offset + sizeOf<SYSTEM_PROCESS_INFORMATION>() > required.value ||
-            required.value > capacity) {
-          throw StateError('Invalid Windows process snapshot');
+Set<int> _namedPids(String name, [Set<int> excluded = const <int>{}]) => using(
+  (arena) {
+    const initialSnapshotBytes = 64 * 1024;
+    const maxSnapshotBytes = 64 * 1024 * 1024;
+    final required = arena<Uint32>();
+    var capacity = initialSnapshotBytes;
+    while (capacity <= maxSnapshotBytes) {
+      final buffer = calloc<Uint8>(capacity);
+      try {
+        final status = NtQuerySystemInformation(
+          SystemProcessInformation,
+          buffer,
+          capacity,
+          required,
+        );
+        if (status == STATUS_INFO_LENGTH_MISMATCH) {
+          capacity = required.value > capacity
+              ? required.value + initialSnapshotBytes
+              : capacity * 2;
+          continue;
         }
-        final entry = (buffer + offset).cast<SYSTEM_PROCESS_INFORMATION>().ref;
-        final image = entry.ImageName;
-        if (image.Length > 0) {
-          final start = image.Buffer.address - buffer.address;
-          if (image.Length.isOdd ||
-              start < 0 ||
-              start + image.Length > required.value) {
-            throw StateError('Invalid Windows process name');
+        if (status.isError) throw WindowsException(status.toHRESULT());
+        final pids = <int>{};
+        var offset = 0;
+        while (true) {
+          if (offset + sizeOf<SYSTEM_PROCESS_INFORMATION>() > required.value ||
+              required.value > capacity) {
+            throw StateError('Invalid Windows process snapshot');
           }
-          if (entry.NumberOfThreads > 0 &&
-              image.Buffer.toDartString(length: image.Length ~/ 2)
-                      .toLowerCase() ==
-                  name.toLowerCase()) {
-            pids.add(entry.UniqueProcessId.address);
+          final entry = (buffer + offset)
+              .cast<SYSTEM_PROCESS_INFORMATION>()
+              .ref;
+          final image = entry.ImageName;
+          if (image.Length > 0) {
+            final start = image.Buffer.address - buffer.address;
+            if (image.Length.isOdd ||
+                start < 0 ||
+                start + image.Length > required.value) {
+              throw StateError('Invalid Windows process name');
+            }
+            if (entry.NumberOfThreads > 0 &&
+                image.Buffer.toDartString(length: image.Length ~/ 2)
+                        .toLowerCase() ==
+                    name.toLowerCase()) {
+              final pid = entry.UniqueProcessId.address;
+              if (!excluded.contains(pid)) {
+                pids.add(pid);
+              }
+            }
           }
+          if (entry.NextEntryOffset == 0) return pids;
+          if (entry.NextEntryOffset < sizeOf<SYSTEM_PROCESS_INFORMATION>()) {
+            throw StateError('Invalid Windows process snapshot offset');
+          }
+          offset += entry.NextEntryOffset;
         }
-        if (entry.NextEntryOffset == 0) return pids;
-        if (entry.NextEntryOffset < sizeOf<SYSTEM_PROCESS_INFORMATION>()) {
-          throw StateError('Invalid Windows process snapshot offset');
-        }
-        offset += entry.NextEntryOffset;
+      } finally {
+        calloc.free(buffer);
       }
-    } finally {
-      calloc.free(buffer);
     }
-  }
-  throw StateError('Windows process snapshot exceeds the size limit');
-});
+    throw StateError('Windows process snapshot exceeds the size limit');
+  },
+);
 
-void _stopNamed(String name) {
+void _stopNamed(String name, [Set<int> excluded = const <int>{}]) {
   final handles = <int, HANDLE>{};
+  final elevatedPids = <int>{};
   var elevate = false;
   try {
-    for (final pid in _namedPids(name)) {
+    for (final pid in _namedPids(name, excluded)) {
       final opened = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, false, pid);
       if (opened.value.isValid) {
         handles[pid] = opened.value;
-      } else if (_namedPids(name).contains(pid)) {
+      } else if (_namedPids(name, excluded).contains(pid)) {
         if (opened.error != ERROR_ACCESS_DENIED) {
           _failed('OpenProcess', opened.error);
         }
         elevate = true;
+        elevatedPids.add(pid);
       }
     }
     if (handles.isNotEmpty) {
       // Recheck names after opening handles so a reused PID cannot select an
       // unrelated process. Handles, not cached PIDs, are used for termination.
-      final current = _namedPids(name);
+      final current = _namedPids(name, excluded);
       for (final entry in handles.entries.toList()) {
         if (!current.contains(entry.key)) {
           CloseHandle(handles.remove(entry.key)!);
           continue;
         }
-        if (elevate || !_running(entry.value)) continue;
+        if (!_running(entry.value)) continue;
         final killed = TerminateProcess(entry.value, 0);
         if (!killed.value && _running(entry.value)) {
           if (killed.error != ERROR_ACCESS_DENIED) {
             _failed('TerminateProcess', killed.error);
           }
           elevate = true;
+          elevatedPids.add(entry.key);
         }
       }
     }
-    if (elevate) {
+    if (elevate && elevatedPids.isNotEmpty) {
       final taskkill = _launchElevated(
         p.windows.join(_systemDirectory(), 'taskkill.exe'),
-        ['/IM', name, '/F'],
+        ['/F', for (final pid in elevatedPids) ...['/PID', '$pid']],
       );
       try {
         final waited = WaitForSingleObject(taskkill, 5000);
@@ -223,7 +255,7 @@ void _stopNamed(String name) {
           return code.value;
         });
         // No targets is also possible when a Core exits during the UAC prompt.
-        if (exitCode != 0 && _namedPids(name).isNotEmpty) {
+        if (exitCode != 0 && _namedPids(name, excluded).isNotEmpty) {
           throw StateError('Elevated Core termination failed: $exitCode');
         }
       } finally {
@@ -232,7 +264,10 @@ void _stopNamed(String name) {
     }
     final waiting = Stopwatch()..start();
     while (true) {
-      if (_namedPids(name).isEmpty && !handles.values.any(_running)) return;
+      if (_namedPids(name, excluded).isEmpty &&
+          !handles.values.any(_running)) {
+        return;
+      }
       if (waiting.elapsed >= const Duration(seconds: 3)) {
         throw StateError('Windows Core did not stop');
       }
@@ -254,18 +289,18 @@ String _systemDirectory() => using((arena) {
   return buffer.toDartString();
 });
 
-HANDLE? _openNamed(int pid, String name) {
+HANDLE? _openNamed(int pid, String name, [Set<int> excluded = const <int>{}]) {
   if (pid <= 0) throw StateError('Invalid Windows Core PID');
   final opened = OpenProcess(PROCESS_ACCESS_RIGHTS(SYNCHRONIZE), false, pid);
   if (!opened.value.isValid) {
     // Exiting processes can disappear before OpenProcess. Only a fresh name
     // query proves this race; other failures must not masquerade as an exit.
-    if (!_namedPids(name).contains(pid)) return null;
+    if (!_namedPids(name, excluded).contains(pid)) return null;
     _failed('OpenProcess', opened.error);
   }
   final handle = opened.value;
   try {
-    if (!_running(handle) || !_namedPids(name).contains(pid)) {
+    if (!_running(handle) || !_namedPids(name, excluded).contains(pid)) {
       CloseHandle(handle);
       return null;
     }

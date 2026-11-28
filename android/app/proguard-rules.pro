@@ -25,3 +25,9 @@
 -keep class kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsKt {
     public static java.lang.Object getCOROUTINE_SUSPENDED();
 }
+
+# Keep gomobile JNI bridges and libXray bindings.
+-keep class go.** { *; }
+-keep class libXray.** { *; }
+-dontwarn go.**
+-dontwarn libXray.**

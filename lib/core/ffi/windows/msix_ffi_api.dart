@@ -53,7 +53,6 @@ class WindowsMsixFfiApi extends WindowsFfiApi {
   Future<void> ensureRuntime() async {
     await getTunFilesDir();
     await checkRuntimeFiles(const [
-      'libXray.dll',
       _coreRelativePath,
       'vole.dll',
       'vole-windows-vpn-host.exe',

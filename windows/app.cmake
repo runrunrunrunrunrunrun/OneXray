@@ -6,7 +6,6 @@ install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/bin\")"
 # Both distribution modes use the same flat runtime layout. Missing native
 # dependencies must fail the build instead of producing an incomplete package.
 install(FILES
-        "${APP_DIR}/libXray.dll"
         "${APP_DIR}/wintun.dll"
         "${APP_DIR}/vole.dll"
         DESTINATION "${CMAKE_INSTALL_PREFIX}"

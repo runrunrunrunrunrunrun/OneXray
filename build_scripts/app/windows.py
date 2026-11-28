@@ -89,10 +89,13 @@ class WindowsBuilder(Builder):
 
     def build_app(self):
         if self.mode == "msix":
+            symbols_dir = Path(self.root_dir) / "build/windows/symbols"
             command = [
                 flutter_command(),
                 "build",
                 "windows",
+                "--obfuscate",
+                f"--split-debug-info={symbols_dir}",
                 "--dart-define=ONEXRAY_WINDOWS_MODE=msix",
             ]
             if self.local_development:
@@ -153,7 +156,11 @@ class WindowsBuilder(Builder):
             if not package.is_file():
                 raise FileNotFoundError(f"Fastforge package missing: {package}")
         for package in packages:
-            shutil.copy2(package, self.output_dir)
+            target = Path(self.output_dir) / package.name
+            if package.suffix == ".zip" and zipfile.is_zipfile(package):
+                _recompress_zip(package, target)
+            else:
+                shutil.copy2(package, target)
 
     def package_msix(self):
         source = Path(self.root_dir) / "build/windows" / self.target_architecture / "runner/Release"
@@ -188,3 +195,28 @@ class WindowsBuilder(Builder):
 
     def msix_version(self) -> str:
         return self.read_version().split("+", maxsplit=1)[0] + ".0"
+
+
+def _recompress_zip(source: Path, destination: Path):
+    temporary = destination.with_suffix(".zip.tmp")
+    try:
+        with (
+            zipfile.ZipFile(source, "r") as reader,
+            zipfile.ZipFile(
+                temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+            ) as writer,
+        ):
+            for info in reader.infolist():
+                cloned = zipfile.ZipInfo(filename=info.filename, date_time=info.date_time)
+                cloned.compress_type = zipfile.ZIP_DEFLATED
+                cloned.external_attr = info.external_attr
+                cloned.comment = info.comment
+                cloned.extra = info.extra
+                if info.is_dir():
+                    writer.writestr(cloned, b"")
+                else:
+                    writer.writestr(cloned, reader.read(info.filename))
+        os.replace(temporary, destination)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise

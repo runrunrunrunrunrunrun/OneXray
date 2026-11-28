@@ -18,11 +18,22 @@ val keystoreProperties: Properties? = if (keystoreFile.exists()) {
     null
 }
 val splitPerAbi = providers.gradleProperty("split-per-abi").orNull?.toBoolean() == true
+val compressNativeLibs =
+    providers.gradleProperty("compress-native-libs").orNull?.toBoolean() == true ||
+        providers.environmentVariable("ONEXRAY_ANDROID_COMPRESS_NATIVE_LIBS").orNull == "1"
 
 android {
     namespace = "net.yuandev.onexray"
     compileSdk = 37
     ndkVersion = "30.0.16248370"
+
+    if (compressNativeLibs) {
+        packaging {
+            jniLibs {
+                useLegacyPackaging = true
+            }
+        }
+    }
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -75,6 +86,12 @@ android {
             // published to Play Store.
             signingConfig = signingConfigs.findByName("upload")
                 ?: signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
