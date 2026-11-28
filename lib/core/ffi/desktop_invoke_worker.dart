@@ -16,16 +16,15 @@ typedef StartInvokeWorker = Future<Process> Function(
 /// without bundling a duplicate `libXray.dll` / `libXray.so` library.
 class DesktopInvokeWorker {
   DesktopInvokeWorker({
-    required String Function() resolveExecutable,
+    required this.resolveExecutable,
     StartInvokeWorker? startProcess,
     this.startupTimeout = const Duration(seconds: 15),
-  }) : _resolveExecutable = resolveExecutable,
-       _startProcess = startProcess ?? Process.start;
+  }) : _startProcess = startProcess ?? Process.start;
 
   /// Active worker PIDs excluded from desktop VPN lifecycle checks.
   static final Set<int> activePids = <int>{};
 
-  final String Function() _resolveExecutable;
+  final String Function() resolveExecutable;
   final StartInvokeWorker _startProcess;
   final Duration startupTimeout;
 
@@ -78,7 +77,7 @@ class DesktopInvokeWorker {
 
   Future<void> _start() async {
     _stopping = false;
-    final executable = _resolveExecutable();
+    final executable = resolveExecutable();
     final process = await _startProcess(executable, const ['serve-invoke']);
     final pid = process.pid;
     activePids.add(pid);
