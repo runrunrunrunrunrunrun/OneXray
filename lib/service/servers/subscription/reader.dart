@@ -293,7 +293,9 @@ class SubscriptionConfigurationReader {
       final list = value[key];
       if (list is! List || list.isEmpty) continue;
       for (final item in list) {
-        if (item is Map && item['type'] is String && !item.containsKey('protocol')) {
+        if (item is Map &&
+            item['type'] is String &&
+            !item.containsKey('protocol')) {
           return true;
         }
       }
