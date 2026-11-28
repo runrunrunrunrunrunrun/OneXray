@@ -18,9 +18,11 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import libXray.LibXray
 import net.yuandev.onexray.vpn.VpnController
 import net.yuandev.onexray.vpn.VpnStatusConnection
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 class AppHostApi(
@@ -139,9 +141,20 @@ class AppHostApi(
 
     override fun invoke(requestJson: String, callback: (Result<String>) -> Unit) {
         scope.launch {
-            // Temporary cores share process-global Xray state. The VPN runs in :native.
-            invokeMutex.withLock {
-                callback(runCatching { LibXray.invoke(requestJson) })
+            val method = runCatching { JSONObject(requestJson).optString("method") }.getOrDefault("")
+            val concurrent = method in CONCURRENT_NETBIRD_OAUTH_METHODS
+            val result = runCatching {
+                if (concurrent) {
+                    LibXray.invoke(requestJson)
+                } else {
+                    // Temporary cores share process-global Xray state. The VPN runs in :native.
+                    invokeMutex.withLock {
+                        LibXray.invoke(requestJson)
+                    }
+                }
+            }
+            withContext(Dispatchers.Main.immediate) {
+                callback(result)
             }
         }
     }
@@ -326,5 +339,10 @@ class AppHostApi(
     private companion object {
         // The per-app list renders icons in a 31dp slot; 96px covers 3x density.
         const val ICON_SIZE_PX = 96
+        val CONCURRENT_NETBIRD_OAUTH_METHODS = setOf(
+            "netbirdStartOAuth",
+            "netbirdCompleteOAuth",
+            "netbirdCancelOAuth",
+        )
     }
 }

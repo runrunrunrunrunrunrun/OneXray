@@ -5,8 +5,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:onexray/core/tools/logger.dart';
 
-typedef StartInvokeWorker =
-    Future<Process> Function(String executable, List<String> arguments);
+typedef StartInvokeWorker = Future<Process> Function(
+  String executable,
+  List<String> arguments,
+);
 
 /// Persistent desktop worker running `OneXrayCore serve-invoke` over stdio.
 ///

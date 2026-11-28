@@ -9,64 +9,70 @@ void main() {
   test(
     'worker completes ready handshake, concurrent calls, and cleans up pid',
     () async {
-    final proc = _FakeProcess(pid: 424242);
-    late String launchedExe;
-    late List<String> launchedArgs;
-    final worker = DesktopInvokeWorker(
-      resolveExecutable: () => '/opt/OneXray/OneXrayCore',
-      startProcess: (exe, args) async {
-        launchedExe = exe;
-        launchedArgs = args;
-        expect(DesktopInvokeWorker.activePids, isNot(contains(proc.pid)));
-        return proc;
-      },
-    );
+      final proc = _FakeProcess(pid: 424242);
+      late String launchedExe;
+      late List<String> launchedArgs;
+      final worker = DesktopInvokeWorker(
+        resolveExecutable: () => '/opt/OneXray/OneXrayCore',
+        startProcess: (exe, args) async {
+          launchedExe = exe;
+          launchedArgs = args;
+          expect(DesktopInvokeWorker.activePids, isNot(contains(proc.pid)));
+          return proc;
+        },
+      );
 
-    final f1 = worker.invoke('{"method":"first"}');
-    await Future<void>.delayed(Duration.zero);
-    expect(launchedExe, '/opt/OneXray/OneXrayCore');
-    expect(launchedArgs, ['serve-invoke']);
-    expect(DesktopInvokeWorker.activePids, contains(424242));
+      final f1 = worker.invoke('{"method":"first"}');
+      await Future<void>.delayed(Duration.zero);
+      expect(launchedExe, '/opt/OneXray/OneXrayCore');
+      expect(launchedArgs, ['serve-invoke']);
+      expect(DesktopInvokeWorker.activePids, contains(424242));
 
-    proc.emitStdoutLine('{"ready":true}');
-    final f2 = worker.invoke('{"method":"second"}');
-    await proc.waitForLines(2);
+      proc.emitStdoutLine('{"ready":true}');
+      final f2 = worker.invoke('{"method":"second"}');
+      await proc.waitForLines(2);
 
-    final req1 = jsonDecode(proc.writtenLines[0]) as Map<String, dynamic>;
-    final req2 = jsonDecode(proc.writtenLines[1]) as Map<String, dynamic>;
-    expect(req1['request'], '{"method":"first"}');
-    expect(req2['request'], '{"method":"second"}');
+      final req1 = jsonDecode(proc.writtenLines[0]) as Map<String, dynamic>;
+      final req2 = jsonDecode(proc.writtenLines[1]) as Map<String, dynamic>;
+      expect(req1['request'], '{"method":"first"}');
+      expect(req2['request'], '{"method":"second"}');
 
-    // Deliver responses out of order to prove concurrent routing.
-    proc.emitStdoutLine(jsonEncode({'id': req2['id'], 'response': '{"n":2}'}));
-    proc.emitStdoutLine(jsonEncode({'id': req1['id'], 'response': '{"n":1}'}));
+      // Deliver responses out of order to prove concurrent routing.
+      proc.emitStdoutLine(
+        jsonEncode({'id': req2['id'], 'response': '{"n":2}'}),
+      );
+      proc.emitStdoutLine(
+        jsonEncode({'id': req1['id'], 'response': '{"n":1}'}),
+      );
 
-    expect(await f1, '{"n":1}');
-    expect(await f2, '{"n":2}');
+      expect(await f1, '{"n":1}');
+      expect(await f2, '{"n":2}');
 
-    await worker.stop();
-    expect(DesktopInvokeWorker.activePids, isNot(contains(424242)));
-  });
+      await worker.stop();
+      expect(DesktopInvokeWorker.activePids, isNot(contains(424242)));
+    },
+  );
 
   test(
     'worker fails pending calls and clears activePids on unexpected exit',
     () async {
-    final proc = _FakeProcess(pid: 515151);
-    final worker = DesktopInvokeWorker(
-      resolveExecutable: () => '/opt/OneXray/OneXrayCore',
-      startProcess: (_, _) async => proc,
-    );
+      final proc = _FakeProcess(pid: 515151);
+      final worker = DesktopInvokeWorker(
+        resolveExecutable: () => '/opt/OneXray/OneXrayCore',
+        startProcess: (_, _) async => proc,
+      );
 
-    final pending = worker.invoke('{"method":"hang"}');
-    await Future<void>.delayed(Duration.zero);
-    proc.emitStdoutLine('{"ready":true}');
-    await proc.waitForLines(1);
-    expect(DesktopInvokeWorker.activePids, contains(515151));
+      final pending = worker.invoke('{"method":"hang"}');
+      await Future<void>.delayed(Duration.zero);
+      proc.emitStdoutLine('{"ready":true}');
+      await proc.waitForLines(1);
+      expect(DesktopInvokeWorker.activePids, contains(515151));
 
-    proc.finish(7);
-    await expectLater(pending, throwsStateError);
-    expect(DesktopInvokeWorker.activePids, isNot(contains(515151)));
-  });
+      proc.finish(7);
+      await expectLater(pending, throwsStateError);
+      expect(DesktopInvokeWorker.activePids, isNot(contains(515151)));
+    },
+  );
 }
 
 class _FakeProcess implements Process {

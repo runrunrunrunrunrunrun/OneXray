@@ -79,21 +79,21 @@ Future<bool> _waitForExit(
   Set<int> excluded = const <int>{},
 ]) => Isolate.run(() {
   final process = _openNamed(pid, name, excluded);
-      if (process == null) return true;
-      try {
-        return using((arena) {
-          final handles = arena<Pointer>(2);
-          handles[0] = process;
-          handles[1] = Pointer.fromAddress(cancelAddress);
-          final result = WaitForMultipleObjects(2, handles, false, INFINITE);
-          if (result.value == WAIT_OBJECT_0) return true;
-          if (result.value == WAIT_EVENT(WAIT_OBJECT_0 + 1)) return false;
-          _failed('WaitForMultipleObjects', result.error);
-        });
-      } finally {
-        CloseHandle(process);
-      }
+  if (process == null) return true;
+  try {
+    return using((arena) {
+      final handles = arena<Pointer>(2);
+      handles[0] = process;
+      handles[1] = Pointer.fromAddress(cancelAddress);
+      final result = WaitForMultipleObjects(2, handles, false, INFINITE);
+      if (result.value == WAIT_OBJECT_0) return true;
+      if (result.value == WAIT_EVENT(WAIT_OBJECT_0 + 1)) return false;
+      _failed('WaitForMultipleObjects', result.error);
     });
+  } finally {
+    CloseHandle(process);
+  }
+});
 
 /// ShellExecuteEx takes a command-line string, not an argv array.
 String quoteWindowsArgument(String value) {
@@ -134,69 +134,67 @@ HANDLE _launchElevated(String executable, List<String> arguments) {
 }
 
 // Query names directly: no executable-path, owner or session lookup is needed.
-Set<int> _namedPids(String name, [Set<int> excluded = const <int>{}]) => using(
-  (arena) {
-    const initialSnapshotBytes = 64 * 1024;
-    const maxSnapshotBytes = 64 * 1024 * 1024;
-    final required = arena<Uint32>();
-    var capacity = initialSnapshotBytes;
-    while (capacity <= maxSnapshotBytes) {
-      final buffer = calloc<Uint8>(capacity);
-      try {
-        final status = NtQuerySystemInformation(
-          SystemProcessInformation,
-          buffer,
-          capacity,
-          required,
-        );
-        if (status == STATUS_INFO_LENGTH_MISMATCH) {
-          capacity = required.value > capacity
-              ? required.value + initialSnapshotBytes
-              : capacity * 2;
-          continue;
-        }
-        if (status.isError) throw WindowsException(status.toHRESULT());
-        final pids = <int>{};
-        var offset = 0;
-        while (true) {
-          if (offset + sizeOf<SYSTEM_PROCESS_INFORMATION>() > required.value ||
-              required.value > capacity) {
-            throw StateError('Invalid Windows process snapshot');
-          }
-          final entry = (buffer + offset)
-              .cast<SYSTEM_PROCESS_INFORMATION>()
-              .ref;
-          final image = entry.ImageName;
-          if (image.Length > 0) {
-            final start = image.Buffer.address - buffer.address;
-            if (image.Length.isOdd ||
-                start < 0 ||
-                start + image.Length > required.value) {
-              throw StateError('Invalid Windows process name');
-            }
-            if (entry.NumberOfThreads > 0 &&
-                image.Buffer.toDartString(length: image.Length ~/ 2)
-                        .toLowerCase() ==
-                    name.toLowerCase()) {
-              final pid = entry.UniqueProcessId.address;
-              if (!excluded.contains(pid)) {
-                pids.add(pid);
-              }
-            }
-          }
-          if (entry.NextEntryOffset == 0) return pids;
-          if (entry.NextEntryOffset < sizeOf<SYSTEM_PROCESS_INFORMATION>()) {
-            throw StateError('Invalid Windows process snapshot offset');
-          }
-          offset += entry.NextEntryOffset;
-        }
-      } finally {
-        calloc.free(buffer);
+Set<int> _namedPids(String name, [Set<int> excluded = const <int>{}]) => using((
+  arena,
+) {
+  const initialSnapshotBytes = 64 * 1024;
+  const maxSnapshotBytes = 64 * 1024 * 1024;
+  final required = arena<Uint32>();
+  var capacity = initialSnapshotBytes;
+  while (capacity <= maxSnapshotBytes) {
+    final buffer = calloc<Uint8>(capacity);
+    try {
+      final status = NtQuerySystemInformation(
+        SystemProcessInformation,
+        buffer,
+        capacity,
+        required,
+      );
+      if (status == STATUS_INFO_LENGTH_MISMATCH) {
+        capacity = required.value > capacity
+            ? required.value + initialSnapshotBytes
+            : capacity * 2;
+        continue;
       }
+      if (status.isError) throw WindowsException(status.toHRESULT());
+      final pids = <int>{};
+      var offset = 0;
+      while (true) {
+        if (offset + sizeOf<SYSTEM_PROCESS_INFORMATION>() > required.value ||
+            required.value > capacity) {
+          throw StateError('Invalid Windows process snapshot');
+        }
+        final entry = (buffer + offset).cast<SYSTEM_PROCESS_INFORMATION>().ref;
+        final image = entry.ImageName;
+        if (image.Length > 0) {
+          final start = image.Buffer.address - buffer.address;
+          if (image.Length.isOdd ||
+              start < 0 ||
+              start + image.Length > required.value) {
+            throw StateError('Invalid Windows process name');
+          }
+          if (entry.NumberOfThreads > 0 &&
+              image.Buffer.toDartString(length: image.Length ~/ 2)
+                      .toLowerCase() ==
+                  name.toLowerCase()) {
+            final pid = entry.UniqueProcessId.address;
+            if (!excluded.contains(pid)) {
+              pids.add(pid);
+            }
+          }
+        }
+        if (entry.NextEntryOffset == 0) return pids;
+        if (entry.NextEntryOffset < sizeOf<SYSTEM_PROCESS_INFORMATION>()) {
+          throw StateError('Invalid Windows process snapshot offset');
+        }
+        offset += entry.NextEntryOffset;
+      }
+    } finally {
+      calloc.free(buffer);
     }
-    throw StateError('Windows process snapshot exceeds the size limit');
-  },
-);
+  }
+  throw StateError('Windows process snapshot exceeds the size limit');
+});
 
 void _stopNamed(String name, [Set<int> excluded = const <int>{}]) {
   final handles = <int, HANDLE>{};
@@ -238,7 +236,10 @@ void _stopNamed(String name, [Set<int> excluded = const <int>{}]) {
     if (elevate && elevatedPids.isNotEmpty) {
       final taskkill = _launchElevated(
         p.windows.join(_systemDirectory(), 'taskkill.exe'),
-        ['/F', for (final pid in elevatedPids) ...['/PID', '$pid']],
+        [
+          '/F',
+          for (final pid in elevatedPids) ...['/PID', '$pid'],
+        ],
       );
       try {
         final waited = WaitForSingleObject(taskkill, 5000);
@@ -264,8 +265,7 @@ void _stopNamed(String name, [Set<int> excluded = const <int>{}]) {
     }
     final waiting = Stopwatch()..start();
     while (true) {
-      if (_namedPids(name, excluded).isEmpty &&
-          !handles.values.any(_running)) {
+      if (_namedPids(name, excluded).isEmpty && !handles.values.any(_running)) {
         return;
       }
       if (waiting.elapsed >= const Duration(seconds: 3)) {
